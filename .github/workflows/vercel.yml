@@ -1,0 +1,65 @@
+name: Vercel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: vercel-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Secrets Vercel
+        run: |
+          missing=""
+          [ -n "$VERCEL_TOKEN" ] || missing="$missing VERCEL_TOKEN"
+          [ -n "$VERCEL_ORG_ID" ] || missing="$missing VERCEL_ORG_ID"
+          [ -n "$VERCEL_PROJECT_ID" ] || missing="$missing VERCEL_PROJECT_ID"
+          if [ -n "$missing" ]; then
+            echo "Secrets manquants :$missing"
+            echo "Voir la section « Mettre en ligne » du README."
+            exit 1
+          fi
+      - run: npm install --global vercel@latest
+      - name: Préparer l'environnement
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ] && [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "TARGET=production" >> "$GITHUB_ENV"
+            echo "BUILD_FLAG=--prod" >> "$GITHUB_ENV"
+            echo "DEPLOY_FLAG=--prod" >> "$GITHUB_ENV"
+          else
+            echo "TARGET=preview" >> "$GITHUB_ENV"
+            echo "BUILD_FLAG=" >> "$GITHUB_ENV"
+            echo "DEPLOY_FLAG=" >> "$GITHUB_ENV"
+          fi
+      - name: Récupérer les variables du projet
+        run: vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
+      - name: Construire
+        run: vercel build $BUILD_FLAG --token="$VERCEL_TOKEN"
+      - name: Publier
+        run: vercel deploy --prebuilt $DEPLOY_FLAG --token="$VERCEL_TOKEN"
