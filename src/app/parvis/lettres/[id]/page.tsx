@@ -24,7 +24,7 @@ export default async function PublicLetterPage({ params }: { params: Promise<{ i
   return (
     <PublicFrame>
       <Link href="/parvis" className="text-sm text-gold">
-        Retour au Parvis
+        Retour à l’espace public
       </Link>
       <p className="mt-4 text-sm text-gold">
         {letter.author?.displayName ?? "La nation"}

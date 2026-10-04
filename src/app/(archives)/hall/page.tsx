@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { Greet } from "@/components/archives-scene";
-import { Badge } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { books, citizens, decrees, letters, parchments, shelves } from "@/lib/db/schema";
-import { formatDate } from "@/lib/format";
+import { books, citizens, decrees, letters, shelves } from "@/lib/db/schema";
+import { excerpt, formatDate } from "@/lib/format";
 import { can, canReadBook, canReadShelf, homePath } from "@/lib/permissions";
 
-export const metadata = { title: "Le Hall" };
+export const metadata = { title: "La table" };
 
 export default async function HallPage() {
   const user = await getCurrentUser();
@@ -17,12 +15,16 @@ export default async function HallPage() {
   if (!can(user, "zone.hall")) redirect(homePath(user));
 
   const db = getDb();
-  const [shelfRows, parchmentRows, decreeRows, publishedDecrees, publishedParchments, publishedLetters, citizenCount] = await Promise.all([
+  const [shelfRows, letterRows, decreeRows, publishedDecrees, publishedLetters, citizenCount] = await Promise.all([
     db.select().from(shelves).orderBy(asc(shelves.sortOrder)),
-    db.select().from(parchments).where(eq(parchments.status, "published")).orderBy(desc(parchments.pinned), desc(parchments.publishedAt)).limit(3),
+    db.query.letters.findMany({
+      where: eq(letters.status, "published"),
+      with: { author: true },
+      orderBy: [desc(letters.publishedAt)],
+      limit: 3,
+    }),
     db.select().from(decrees).where(eq(decrees.status, "published")).orderBy(desc(decrees.publishedAt)).limit(3),
     db.select({ id: decrees.id }).from(decrees).where(eq(decrees.status, "published")),
-    db.select({ id: parchments.id }).from(parchments).where(eq(parchments.status, "published")),
     db.select({ id: letters.id }).from(letters).where(eq(letters.status, "published")),
     can(user, "zone.recensement") ? db.select({ id: citizens.id }).from(citizens) : Promise.resolve([]),
   ]);
@@ -41,32 +43,41 @@ export default async function HallPage() {
         .slice(0, 4)
     : [];
 
-  const parvisCount = publishedDecrees.length + publishedParchments.length + publishedLetters.length;
-  const news = [
-    can(user, "zone.recensement") ? `${citizenCount.length} âmes sont au recensement` : null,
-    `${parvisCount} texte${parvisCount > 1 ? "s" : ""} ${parvisCount > 1 ? "sont cloués" : "est cloué"} au Parvis`,
-    `${readable.length} rayon${readable.length > 1 ? "s" : ""} s’ouvre${readable.length > 1 ? "nt" : ""} à ton degré`,
-    recentBooks[0] ? `le dernier livre à ta portée est « ${recentBooks[0].title} »` : null,
-  ].filter((item): item is string => Boolean(item));
+  const parvisCount = publishedDecrees.length + publishedLetters.length;
+  const tiles = [
+    { label: "Rayons ouverts", value: String(readable.length) },
+    { label: "Textes au Parvis", value: String(parvisCount) },
+    ...(can(user, "zone.recensement") ? [{ label: "Âmes recensées", value: String(citizenCount.length) }] : []),
+  ];
 
   return (
-    <div className="arrive mx-auto max-w-5xl pt-6">
-      <Greet news={news} />
-      <p className="text-center text-xs uppercase tracking-[0.22em] text-gold">Terre, racine, mémoire</p>
-      <h1 className="mt-2 text-center font-display text-5xl tracking-tight">Sous les racines, le visage reste dans l’ombre.</h1>
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="mx-auto max-w-5xl">
+      <p className="text-xs uppercase tracking-[0.22em] text-gold">Nation de la terre et de la nature</p>
+      <h1 className="mt-2 font-display text-5xl tracking-tight">Table de Gaélia</h1>
+      <p className="mt-3 max-w-2xl text-sap">L’espace privé de la nation. Les décrets et lettres publiés se lisent aussi dehors, sans connexion.</p>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.label} className="rounded-2xl border border-gold/25 bg-black/20 px-4 py-4">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-gold">{tile.label}</p>
+            <p className="mt-1 font-display text-4xl">{tile.value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-4">
-          {parchmentRows.map((item) => (
-            <Link key={item.id} href={`/parvis/parchemins/${item.id}`} className="parchment block rounded-[1.6rem] p-5">
+          {letterRows.map((item) => (
+            <Link key={item.id} href={`/parvis/lettres/${item.id}`} className="parchment block rounded-[1.6rem] p-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-gold-deep">{formatDate(item.publishedAt)}</p>
-                {item.pinned ? <Badge>Épinglé</Badge> : null}
+                <p className="text-[11px] uppercase tracking-[0.16em] text-gold-deep">
+                  Lettre · {formatDate(item.publishedAt)}
+                </p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[#8d6b32]">{item.author?.displayName ?? "La nation"}</p>
               </div>
-              <h2 className="mt-2 font-display text-3xl text-ink">{item.title}</h2>
-              <p className="mt-3 line-clamp-5 font-serif leading-7 text-ink">{item.body}</p>
+              <h2 className="mt-2 font-display text-3xl text-ink">{item.subject}</h2>
+              <p className="mt-3 line-clamp-5 font-serif leading-7 text-ink">{excerpt(item.body, 220)}</p>
             </Link>
           ))}
-          {parchmentRows.length === 0 ? <p className="text-center font-serif text-xl text-sap">Aucun parchemin n’est encore cloué.</p> : null}
+          {letterRows.length === 0 ? <p className="text-center font-serif text-xl text-sap">Aucune lettre n’est encore publiée.</p> : null}
         </div>
         <div className="grid content-start gap-3">
           {recentBooks.map((book) => (

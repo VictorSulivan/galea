@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BookEditor } from "@/components/book-editor";
 import { ActionForm } from "@/components/action-form";
-import { Button, PageHeader, Panel } from "@/components/ui";
+import { Button, PageHeader } from "@/components/ui";
 import { loadBook } from "@/lib/books";
 import { canWriteBook, shelfLevel } from "@/lib/permissions";
 import { deleteBook } from "@/server/library";
@@ -17,9 +17,8 @@ export default async function WriteBookPage({ params }: { params: Promise<{ shel
 
   return (
     <div>
-      <PageHeader kicker={context.shelf.name} title={context.book.title} lede="Les images partent dans le cellier Neon, puis s'insèrent dans le feuillet." />
-      <Panel>
-        <BookEditor
+      <PageHeader kicker={context.shelf.name} title={context.book.title} lede="Choisis une page à gauche, écris-la à droite." />
+      <BookEditor
           shelfId={context.shelf.id}
           bookId={context.book.id}
           maxLevel={shelfLevel(context.user, context.shelf.slug)}
@@ -34,7 +33,7 @@ export default async function WriteBookPage({ params }: { params: Promise<{ shel
             chapters: ordered.map((chapter) => ({ title: chapter.title, body: chapter.body })),
           }}
         />
-        <div className="mt-8 border-t border-[#eadcc0] pt-4">
+        <div className="mt-4">
           <ActionForm action={deleteBook}>
             <input type="hidden" name="id" value={context.book.id} />
             <Button type="submit" variant="danger">
@@ -42,7 +41,6 @@ export default async function WriteBookPage({ params }: { params: Promise<{ shel
             </Button>
           </ActionForm>
         </div>
-      </Panel>
     </div>
   );
 }

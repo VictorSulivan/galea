@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
+import { DecreeSheet } from "@/components/decree-sheet";
 import { Markdown } from "@/components/markdown";
-import { Badge, PageHeader, Panel } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { decrees, users } from "@/lib/db/schema";
@@ -26,27 +26,23 @@ export default async function DecreePage({ params }: { params: Promise<{ id: str
     : null;
 
   return (
-    <div>
-      <PageHeader
-        kicker={decree.reference ?? "Brouillon"}
-        title={decree.title}
-        lede={decree.preamble}
-        action={
-          <Link href={`/decrets/${decree.id}/modifier`} className="rounded-full border border-gold/50 px-4 py-2 text-sm text-gold">
-            Reprendre
-          </Link>
-        }
-      />
-      <div className="mb-4 flex gap-3 text-sm text-sap">
-        <Badge tone={decree.status === "published" ? "leaf" : decree.status === "repealed" ? "clay" : "gold"}>
-          {DECREE_STATUS[decree.status] ?? decree.status}
-        </Badge>
-        <span>{author?.displayName ?? "Scribe inconnu"}</span>
-        <span>{formatDate(decree.publishedAt ?? decree.createdAt)}</span>
+    <div className="max-w-3xl">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-sap">{author?.displayName ?? "Scribe inconnu"}</p>
+        <Link href={`/decrets/${decree.id}/modifier`} className="rounded-full border border-gold/50 px-4 py-2 text-sm text-gold">
+          Reprendre
+        </Link>
       </div>
-      <Panel>
+      <DecreeSheet
+        reference={decree.reference ?? "Sans numéro"}
+        title={decree.title}
+        preamble={decree.preamble}
+        status={DECREE_STATUS[decree.status] ?? decree.status}
+        date={formatDate(decree.publishedAt ?? decree.createdAt)}
+        issuerRole={decree.issuerRole || undefined}
+      >
         <Markdown source={decree.body} />
-      </Panel>
+      </DecreeSheet>
     </div>
   );
 }

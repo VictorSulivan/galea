@@ -26,7 +26,7 @@ export default async function ShelvesPage() {
         lede="Un rayon neuf n'est visible pour personne. Il apparaît dans la checklist, et tu coches qui peut le lire ou l'écrire."
       />
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <Panel>
+        <Panel sheet>
           <h2 className="font-display text-3xl">Nouveau rayon</h2>
           <div className="mt-4">
             <ActionForm action={saveShelf}>

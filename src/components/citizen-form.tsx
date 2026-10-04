@@ -5,20 +5,25 @@ import { Button, Field, inputClass } from "./ui";
 
 export function CitizenForm({
   citizen,
+  grades,
+  superiors,
   accounts,
 }: {
   citizen?: {
     id: string;
     name: string;
     epithet: string;
-    grade: string;
+    gradeId: string;
+    superiorId: string | null;
     status: string;
     joinedOn: string | null;
     notes: string;
     portraitKey: string | null;
     userId: string | null;
   };
-  accounts: { id: string; displayName: string; email: string }[];
+  grades: { id: string; name: string }[];
+  superiors: { id: string; name: string }[];
+  accounts: { id: string; displayName: string; username: string }[];
 }) {
   return (
     <ActionForm action={saveCitizen}>
@@ -31,10 +36,31 @@ export function CitizenForm({
           <input name="epithet" defaultValue={citizen?.epithet} className={inputClass} />
         </Field>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="Grade">
-          <input name="grade" defaultValue={citizen?.grade} placeholder="Gaelor, conseil, sentinelle…" className={inputClass} />
+          <select name="gradeId" required defaultValue={citizen?.gradeId ?? ""} className={inputClass}>
+            <option value="">Choisir</option>
+            {grades.map((grade) => (
+              <option key={grade.id} value={grade.id}>
+                {grade.name}
+              </option>
+            ))}
+          </select>
         </Field>
+        <Field label="Supérieur">
+          <select name="superiorId" defaultValue={citizen?.superiorId ?? ""} className={inputClass}>
+            <option value="">Aucun (Gaelor ou sans rôle)</option>
+            {superiors
+              .filter((person) => person.id !== citizen?.id)
+              .map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+          </select>
+        </Field>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="État">
           <select name="status" defaultValue={citizen?.status ?? "actif"} className={inputClass}>
             <option value="actif">Actif</option>
@@ -53,7 +79,7 @@ export function CitizenForm({
           <option value="">Aucun sceau</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.displayName} · {account.email}
+              {account.displayName} · {account.username}
             </option>
           ))}
         </select>

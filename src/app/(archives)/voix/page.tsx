@@ -7,9 +7,21 @@ import { canVoice } from "@/lib/permissions";
 export const metadata = { title: "La Voix" };
 
 const ROOMS = [
-  { href: "/decrets", title: "Décrets", text: "Textes de loi. Ils reçoivent un numéro GAE au moment où ils sont promulgués sur le Parvis." },
-  { href: "/parchemins", title: "Parchemins", text: "Annonces clouées pour que toute la nation, et ceux du dehors, les lisent." },
-  { href: "/lettres", title: "Lettres officielles", text: "La parole des dirigeants. Pas un courrier d'un membre à un autre." },
+  {
+    href: "/decrets",
+    title: "Décrets",
+    text: "Textes de loi du Gaelor et du Conseil. On écrit le rôle qui a fait et publié le décret, puis on le promulgue sur le Parvis.",
+  },
+  {
+    href: "/lettres",
+    title: "Lettres officielles",
+    text: "La parole des dirigeants, publiée sur le Parvis. Pas un courrier d’un membre à un autre.",
+  },
+  {
+    href: "/cahier",
+    title: "Cahier interne",
+    text: "Rapports de réunion et événements de la nation, notés pour le Conseil — jamais affichés sur le Parvis.",
+  },
 ];
 
 export default async function VoicePage() {
@@ -21,7 +33,7 @@ export default async function VoicePage() {
       <PageHeader
         kicker="Hautes têtes"
         title="La Voix"
-        lede="Le Gaelor et le Conseil rédigent ici. Quand le texte est fini, il est publié sur le Parvis, lisible sans sceau."
+        lede="Le Gaelor et le Conseil rédigent ici. Les décrets et lettres vont au Parvis. Le cahier reste entre nous."
       />
       <div className="grid gap-4 md:grid-cols-3">
         {ROOMS.map((room) => (

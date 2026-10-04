@@ -22,8 +22,12 @@ export default async function NewAccountPage() {
 
   return (
     <div>
-      <PageHeader kicker="Sceaux" title="Ouvrir un compte" lede="Le modèle Citoyen pose des degrés de départ. Chaque section se règle ensuite, de Fermé jusqu'au Gaelor." />
-      <Panel>
+      <PageHeader
+        kicker="Sceaux"
+        title="Ouvrir un compte"
+        lede="Commence par un modèle (Citoyen, Conseil…). Ensuite chaque porte explique ce que le degré choisi permet — y compris sur les listes administrables."
+      />
+      <Panel sheet>
         <PermissionEditor action={createAccount} shelves={refs} initial={presetGrants("citoyen", refs)} submitLabel="Créer le compte">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Nom">
@@ -34,8 +38,8 @@ export default async function NewAccountPage() {
             </Field>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Sceau (adresse)">
-              <input name="email" type="email" required className={inputClass} />
+            <Field label="Nom d’utilisateur">
+              <input name="username" required autoComplete="off" className={inputClass} placeholder="seve" />
             </Field>
             <Field label="Mot de passe provisoire">
               <input name="password" type="password" required minLength={8} className={inputClass} />

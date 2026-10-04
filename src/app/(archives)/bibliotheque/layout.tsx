@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { LibraryStage } from "@/components/library-stage";
+import { LibraryBoard } from "@/components/library-board";
 import { getCurrentUser } from "@/lib/auth";
 import { loadLibraryStage } from "@/lib/books";
 import { can } from "@/lib/permissions";
@@ -11,7 +11,9 @@ export default async function LibraryLayout({ children }: { children: React.Reac
   const shelves = await loadLibraryStage(user);
   return (
     <Suspense fallback={null}>
-      <LibraryStage shelves={shelves}>{children}</LibraryStage>
+      <LibraryBoard shelves={shelves} canManageShelves={can(user, "rayons.gerer")}>
+        {children}
+      </LibraryBoard>
     </Suspense>
   );
 }

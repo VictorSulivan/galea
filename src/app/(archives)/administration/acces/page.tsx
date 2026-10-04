@@ -20,7 +20,7 @@ export default async function AccessPage() {
       <PageHeader
         kicker="Sceaux"
         title="Accès"
-        lede="Chaque personne a sa propre checklist. Un modèle ne fait que pré-cocher : tu peux ensuite retirer une seule porte."
+        lede="Chaque compte a sa checklist. Un modèle préremplit ; ensuite tu vois, porte par porte, ce que le degré autorise vraiment."
         action={
           <Link href="/administration/acces/nouveau" className="rounded-full bg-gold px-4 py-2 text-sm text-moss-deep">
             Ouvrir un compte
@@ -34,7 +34,7 @@ export default async function AccessPage() {
               <div>
                 <h2 className="font-display text-2xl">{account.displayName}</h2>
                 <p className="text-sm text-ink-soft">
-                  {account.email}
+                  {account.username}
                   {account.title ? ` · ${account.title}` : ""}
                 </p>
               </div>

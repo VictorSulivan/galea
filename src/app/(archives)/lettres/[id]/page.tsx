@@ -32,7 +32,7 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
           </Link>
         }
       />
-      <Panel>
+      <Panel sheet>
         <LetterEditor
           letterId={letter.id}
           initial={{ subject: letter.subject, body: letter.body, status: letter.status }}

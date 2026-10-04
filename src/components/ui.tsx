@@ -8,17 +8,7 @@ export const inputClass =
 export const labelClass = "mb-1.5 block text-[11px] font-medium uppercase tracking-[0.18em] text-gold-deep";
 
 export function Mark({ className = "h-10 w-10" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M32 50V16" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M32 36c-8-3-15-10-18-20" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M32 32c8-4 15-11 18-20" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="32" cy="15" r="2.2" fill="currentColor" />
-      <circle cx="15" cy="17" r="1.6" fill="currentColor" />
-      <circle cx="49" cy="13" r="1.6" fill="currentColor" />
-    </svg>
-  );
+  return <img src="/gaelia/bouclier.png" alt="" className={`object-contain ${className}`} />;
 }
 
 export function PageHeader({
@@ -44,8 +34,17 @@ export function PageHeader({
   );
 }
 
-export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`parchment rounded-3xl p-5 md:p-7 ${className}`}>{children}</section>;
+export function Panel({
+  children,
+  className = "",
+  sheet = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  sheet?: boolean | "slip";
+}) {
+  const skin = sheet === "slip" ? "form-slip rounded-sm p-4 md:p-5" : sheet ? "form-sheet" : "parchment rounded-3xl p-5 md:p-7";
+  return <section className={`${skin} ${className}`}>{children}</section>;
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {

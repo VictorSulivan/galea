@@ -27,13 +27,17 @@ export default async function AccountRightsPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <PageHeader kicker={account.email} title={account.displayName} lede={account.title ?? "Sans titre"} />
+      <PageHeader
+        kicker={account.username}
+        title={account.displayName}
+        lede={account.title ?? "Chaque porte affiche ce que le degré autorise — listes administrables incluses."}
+      />
       {account.isSuperAdmin ? (
         <p className="mb-4 rounded-2xl border border-gold/40 px-4 py-3 text-sm text-gold">
           Ce gardien technique garde l’accès total, pour qu’on ne puisse pas fermer les archives à clé. Les degrés ci-dessous servent de mémoire, ils ne le verrouillent pas.
         </p>
       ) : null}
-      <Panel>
+      <Panel sheet>
         <PermissionEditor action={saveAccess} shelves={refs} initial={account.grants.map((grant) => ({ key: grant.key, level: grant.level }))} submitLabel="Enregistrer les degrés">
           <input type="hidden" name="id" value={account.id} />
           <div className="grid gap-4 md:grid-cols-2">
@@ -52,7 +56,7 @@ export default async function AccountRightsPage({ params }: { params: Promise<{ 
           )}
         </PermissionEditor>
       </Panel>
-      <Panel className="mt-6">
+      <Panel sheet className="mt-6">
         <h2 className="font-display text-2xl">Nouveau mot de passe</h2>
         <div className="mt-4">
           <ActionForm action={resetAccessPassword}>

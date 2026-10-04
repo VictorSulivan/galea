@@ -1,6 +1,6 @@
 # Archives de Gaélia
 
-Application Next.js pour la nation de la terre : annuaire du serveur, bibliothèque à rayons, recensement, organigramme, décrets, parchemins et lettres. Chaque porte s'ouvre selon une checklist de droits.
+Application Next.js pour la nation de la terre : annuaire du serveur, bibliothèque à rayons, recensement, organigramme, décrets, lettres officielles et cahier interne. Chaque porte s'ouvre selon une checklist de droits.
 
 La base est un projet [Neon](https://console.neon.tech). Les images (couvertures, portraits, illustrations) vont dans le Object Storage de la même branche.
 
@@ -25,7 +25,7 @@ npm run db:seed
 npm run dev
 ```
 
-Le seed ouvre un gardien technique (`ADMIN_EMAIL`, par défaut `gardien@gaelia.local`). Ce compte garde l'accès total, pour ne jamais enfermer les archives. Le Gaelor, lui, est un compte normal : le modèle « Gaelor » coche toutes les portes, et on peut ensuite en retirer.
+Le seed ouvre un gardien technique (`ADMIN_USERNAME`, par défaut `gardien`). Ce compte garde l'accès total, pour ne jamais enfermer les archives. Le Gaelor, lui, est un compte normal : le modèle « Gaelor » coche toutes les portes, et on peut ensuite en retirer.
 
 ## Mettre en ligne
 
@@ -46,7 +46,7 @@ Le schéma et le seed ne partent pas tout seuls à chaque déploiement : ils se 
 
 La salle du sceau (`/administration`) sert à créer les comptes et à cocher, pour chacun :
 
-- les zones du site (annuaire, bibliothèque, recensement, organigramme, décrets, parchemins, lettres) ;
+- les zones du site (annuaire, bibliothèque, recensement, organigramme, décrets, lettres, cahier interne) ;
 - les gestes (écrire, promulguer, tenir le recensement, gérer les accès) ;
 - chaque rayon de la bibliothèque, en lecture et en écriture.
 

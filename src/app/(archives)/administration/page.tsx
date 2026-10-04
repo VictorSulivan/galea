@@ -11,16 +11,28 @@ export default async function AdminPage() {
   if (!user || !canEnterAdmin(user)) redirect("/hall");
   const cards = [
     can(user, "acces.gerer")
-      ? { href: "/administration/acces", title: "Accès", text: "Comptes et degrés de pouvoir, section par section, rayon par rayon." }
+      ? {
+          href: "/administration/acces",
+          title: "Accès",
+          text: "Ouvrir un compte, poser un modèle, puis régler chaque porte avec une phrase claire : qui lit, qui écrit, qui tient.",
+        }
       : null,
     can(user, "rayons.gerer")
-      ? { href: "/administration/rayons", title: "Rayons", text: "Ouvrir une nouvelle section de bibliothèque. Personne n'y entre tant qu'un degré ne lui est pas donné." }
+      ? {
+          href: "/administration/rayons",
+          title: "Rayons",
+          text: "Créer une section de bibliothèque. Personne n’y entre tant qu’un degré n’est pas donné sur la fiche d’accès.",
+        }
       : null,
   ].filter((card) => card !== null);
 
   return (
     <div>
-      <PageHeader kicker="Administration" title="Salle du sceau" lede="Ici se décident les degrés. Un initié de niveau 2 lit les secrets 1 et 2. Le niveau 5 reste au Gaelor." />
+      <PageHeader
+        kicker="Administration"
+        title="Salle du sceau"
+        lede="Les listes (grades, catégories, offices, rayons) se tiennent dans chaque salle. Ici, tu décides seulement qui peut les ouvrir."
+      />
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((card) => (
           <Link key={card.href} href={card.href}>

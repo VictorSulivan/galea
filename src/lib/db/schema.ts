@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  email: text("email").notNull().unique(),
+  username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   displayName: text("display_name").notNull(),
   title: text("title"),
@@ -39,12 +39,34 @@ export const grants = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.key] })],
 );
 
+export const directoryCategories = pgTable("directory_categories", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt,
+  updatedAt,
+});
+
+export const citizenGrades = pgTable("citizen_grades", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt,
+  updatedAt,
+});
+
 export const people = pgTable("people", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
-  nation: text("nation").notNull(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => directoryCategories.id, { onDelete: "restrict" }),
   office: text("office").notNull(),
   summary: text("summary").notNull().default(""),
   notes: text("notes").notNull().default(""),
@@ -64,7 +86,10 @@ export const citizens = pgTable("citizens", {
     .references(() => users.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   epithet: text("epithet").notNull().default(""),
-  grade: text("grade").notNull().default(""),
+  gradeId: text("grade_id")
+    .notNull()
+    .references(() => citizenGrades.id, { onDelete: "restrict" }),
+  superiorId: text("superior_id"),
   status: text("status").notNull().default("actif"),
   joinedOn: date("joined_on"),
   notes: text("notes").notNull().default(""),
@@ -147,12 +172,30 @@ export const decrees = pgTable("decrees", {
   preamble: text("preamble").notNull().default(""),
   body: text("body").notNull().default(""),
   status: text("status").notNull().default("draft"),
+  issuerRole: text("issuer_role").notNull().default(""),
   authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   repealedAt: timestamp("repealed_at", { withTimezone: true }),
   createdAt,
   updatedAt,
 });
+
+export const voiceNotes = pgTable(
+  "voice_notes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull().default(""),
+    occurredOn: date("occurred_on"),
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("voice_notes_kind_idx").on(table.kind), index("voice_notes_occurred_idx").on(table.occurredOn)],
+);
 
 export const parchments = pgTable("parchments", {
   id: text("id")
@@ -220,8 +263,31 @@ export const lettersRelations = relations(letters, ({ one }) => ({
   author: one(users, { fields: [letters.authorId], references: [users.id] }),
 }));
 
-export const citizensRelations = relations(citizens, ({ one }) => ({
+export const voiceNotesRelations = relations(voiceNotes, ({ one }) => ({
+  author: one(users, { fields: [voiceNotes.authorId], references: [users.id] }),
+}));
+
+export const directoryCategoriesRelations = relations(directoryCategories, ({ many }) => ({
+  people: many(people),
+}));
+
+export const citizenGradesRelations = relations(citizenGrades, ({ many }) => ({
+  citizens: many(citizens),
+}));
+
+export const peopleRelations = relations(people, ({ one }) => ({
+  category: one(directoryCategories, { fields: [people.categoryId], references: [directoryCategories.id] }),
+}));
+
+export const citizensRelations = relations(citizens, ({ one, many }) => ({
   account: one(users, { fields: [citizens.userId], references: [users.id] }),
+  grade: one(citizenGrades, { fields: [citizens.gradeId], references: [citizenGrades.id] }),
+  superior: one(citizens, {
+    fields: [citizens.superiorId],
+    references: [citizens.id],
+    relationName: "citizenChain",
+  }),
+  reports: many(citizens, { relationName: "citizenChain" }),
 }));
 
 export const officesRelations = relations(offices, ({ one, many }) => ({

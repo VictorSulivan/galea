@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { BookEditor } from "@/components/book-editor";
-import { PageHeader, Panel } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { loadShelf } from "@/lib/books";
 import { canWriteShelf, shelfLevel } from "@/lib/permissions";
 
@@ -22,14 +22,12 @@ export default async function NewBookPage({
 
   return (
     <div>
-      <PageHeader kicker={context.shelf.name} title="Nouveau livre" lede="Brouillon tant qu'il n'est pas publié. Seuls les scribes du rayon le voient avant." />
-      <Panel>
-        <BookEditor
-          shelfId={context.shelf.id}
-          maxLevel={maxLevel}
-          initial={{ title: "", subtitle: "", summary: "", level, status: "draft", occurredOn: "", coverKey: null, chapters: [{ title: "Premier feuillet", body: "" }] }}
-        />
-      </Panel>
+      <PageHeader kicker={context.shelf.name} title="Nouveau livre" lede="Le livre s’ouvre à gauche. La page que tu écris est à droite." />
+      <BookEditor
+        shelfId={context.shelf.id}
+        maxLevel={maxLevel}
+        initial={{ title: "", subtitle: "", summary: "", level, status: "draft", occurredOn: "", coverKey: null, chapters: [{ title: "Page 1", body: "" }] }}
+      />
     </div>
   );
 }

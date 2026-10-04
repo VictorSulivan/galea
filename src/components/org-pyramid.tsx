@@ -13,6 +13,7 @@ export type OrgNode = {
   sortOrder: number;
   citizenId: string | null;
   citizenName: string | null;
+  superiorName: string | null;
 };
 
 type Seat = OrgNode & { x: number; y: number; w: number; h: number; depth: number };
@@ -27,9 +28,9 @@ function orderedChildren(nodes: OrgNode[], parentId: string | null) {
 }
 
 function seatSize(depth: number) {
-  if (depth === 0) return { w: 240, h: 112 };
-  if (depth === 1) return { w: 200, h: 104 };
-  return { w: 188, h: 96 };
+  if (depth === 0) return { w: 248, h: 124 };
+  if (depth === 1) return { w: 208, h: 116 };
+  return { w: 196, h: 108 };
 }
 
 function layout(nodes: OrgNode[]): Seat[] {
@@ -87,7 +88,7 @@ export function OrgPyramid({
   initialId,
 }: {
   nodes: OrgNode[];
-  citizens: { id: string; name: string }[];
+  citizens: { id: string; name: string; superiorId: string | null }[];
   writable: boolean;
   initialId?: string;
 }) {
@@ -230,6 +231,11 @@ export function OrgPyramid({
                 <span className={`mt-1 block truncate text-xs ${seat.citizenName ? "text-ink-soft" : "text-gold-deep"}`}>
                   {seat.citizenName ?? "Place vacante"}
                 </span>
+                {seat.superiorName ? (
+                  <span className="mt-0.5 block truncate text-[10px] uppercase tracking-[0.12em] text-gold-deep/80">
+                    Sous {seat.superiorName}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -261,14 +267,22 @@ export function OrgPyramid({
             role="dialog"
             aria-modal="true"
             aria-label={creating ? "Nouvel office" : selected.title}
-            className="vellum-sheet max-h-[88vh] w-full max-w-xl overflow-y-auto px-10 py-12 md:px-14 md:py-14"
+            className="form-sheet max-h-[88vh] w-full max-w-xl overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">Rang {selected.depth + 1}</p>
                 <h2 className="mt-1 font-display text-4xl text-ink">{creating ? "Nouvelle place" : selected.title}</h2>
-                <p className="mt-1 font-serif text-ink-soft">{creating ? `Sous ${selected.title}.` : selected.citizenName ?? "Place vacante."}</p>
+                <p className="mt-1 font-serif text-ink-soft">
+                  {creating
+                    ? `Sous ${selected.title}.`
+                    : selected.citizenName
+                      ? selected.superiorName
+                        ? `${selected.citizenName} · sous ${selected.superiorName}`
+                        : selected.citizenName
+                      : "Place vacante."}
+                </p>
               </div>
               <button type="button" className="wax-seal h-12 w-12 shrink-0" aria-label="Replier le parchemin" onClick={() => setSealOpen(false)}>
                 <Mark className="h-5 w-5" />
@@ -312,9 +326,10 @@ function OfficeForm({
   node: OrgNode | null;
   parentId: string | null;
   nodes: OrgNode[];
-  citizens: { id: string; name: string }[];
+  citizens: { id: string; name: string; superiorId: string | null }[];
   sortOrder: number;
 }) {
+  const parentOffice = parentId ? nodes.find((item) => item.id === parentId) : null;
   return (
     <ActionForm action={saveOffice}>
       <input type="hidden" name="id" value={node?.id ?? ""} />
@@ -333,6 +348,7 @@ function OfficeForm({
               .map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.title}
+                  {item.citizenName ? ` · ${item.citizenName}` : ""}
                 </option>
               ))}
           </select>
@@ -343,11 +359,19 @@ function OfficeForm({
             {citizens.map((citizen) => (
               <option key={citizen.id} value={citizen.id}>
                 {citizen.name}
+                {citizen.superiorId
+                  ? ` · sous ${citizens.find((item) => item.id === citizen.superiorId)?.name ?? "…"}`
+                  : ""}
               </option>
             ))}
           </select>
         </Field>
       </div>
+      {parentOffice?.citizenName ? (
+        <p className="mb-3 text-sm text-ink-soft">
+          En enregistrant, le titulaire prendra {parentOffice.citizenName} pour supérieur — sauf s’il est Gaelor.
+        </p>
+      ) : null}
       <Field label="Ordre sur le rang">
         <input name="sortOrder" type="number" defaultValue={sortOrder} className="vellum-ink" />
       </Field>

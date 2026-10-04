@@ -21,7 +21,7 @@ export default async function DecreesPage() {
       <PageHeader
         kicker="La voix de la nation"
         title="Décrets"
-        lede="Brouillons, promulgations, abrogations. Le numéro GAE est donné quand le texte est posé sur le Parvis."
+        lede="Brouillons, promulgations, abrogations. On note le rôle — Gaelor ou office du Conseil — qui a fait et publié le texte."
         action={
           <Link href="/decrets/nouveau" className="rounded-full bg-gold px-4 py-2 text-sm text-moss-deep">
             Rédiger
@@ -41,6 +41,7 @@ export default async function DecreesPage() {
                 <span className="text-xs text-ink-soft">{formatDate(decree.publishedAt ?? decree.updatedAt)}</span>
               </div>
               <h2 className="mt-2 font-display text-3xl">{decree.title}</h2>
+              {decree.issuerRole ? <p className="mt-1 text-sm text-gold-deep">Par le {decree.issuerRole}</p> : null}
               {decree.preamble ? <p className="mt-2 text-sm text-ink-soft">{decree.preamble}</p> : null}
             </Panel>
           </Link>

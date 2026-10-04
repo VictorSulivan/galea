@@ -5,17 +5,19 @@ import { Button, Field, inputClass } from "./ui";
 
 export function PersonForm({
   person,
+  categories,
 }: {
   person?: {
     id: string;
     name: string;
-    nation: string;
+    categoryId: string;
     office: string;
     summary: string;
     notes: string;
     portraitKey: string | null;
     featured: boolean;
   };
+  categories: { id: string; name: string }[];
 }) {
   return (
     <ActionForm action={savePerson}>
@@ -24,8 +26,15 @@ export function PersonForm({
         <Field label="Nom">
           <input name="name" required defaultValue={person?.name} className={inputClass} />
         </Field>
-        <Field label="Nation">
-          <input name="nation" required defaultValue={person?.nation} className={inputClass} />
+        <Field label="Catégorie">
+          <select name="categoryId" required defaultValue={person?.categoryId ?? ""} className={inputClass}>
+            <option value="">Choisir</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
       <Field label="Fonction">

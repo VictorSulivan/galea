@@ -7,7 +7,7 @@ const MARK = "Idris Vaurien";
 
 async function main() {
   const { getDb } = await import("../src/lib/db");
-  const { books, chapters, citizens, decrees, letters, offices, parchments, people, users } = await import("../src/lib/db/schema");
+  const { books, chapters, citizenGrades, citizens, decrees, directoryCategories, letters, offices, people, users, voiceNotes } = await import("../src/lib/db/schema");
 
   if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL manquant dans .env.local.");
@@ -22,7 +22,7 @@ async function main() {
   }
 
   const admin = await db.query.users.findFirst({
-    where: eq(users.email, (process.env.ADMIN_EMAIL || "gardien@gaelia.local").toLowerCase()),
+    where: eq(users.username, (process.env.ADMIN_USERNAME || "gardien").toLowerCase()),
   });
   if (!admin) {
     console.error("Aucun gardien. Lance d'abord npm run db:seed.");
@@ -32,17 +32,30 @@ async function main() {
   const shelfRows = await db.query.shelves.findMany();
   const shelfId = new Map(shelfRows.map((shelf) => [shelf.slug, shelf.id]));
 
+  const gradeSeed = [
+    { name: "Gaelor", sortOrder: 0 },
+    { name: "Conseil", sortOrder: 10 },
+    { name: "Sentinelle", sortOrder: 20 },
+    { name: "Archiviste", sortOrder: 30 },
+    { name: "Herboriste", sortOrder: 40 },
+    { name: "Apprentie", sortOrder: 50 },
+    { name: "Exilé", sortOrder: 60 },
+  ];
+  await db.insert(citizenGrades).values(gradeSeed);
+  const gradeRows = await db.select().from(citizenGrades);
+  const gradeId = new Map(gradeRows.map((grade) => [grade.name, grade.id]));
+
   const citizenSeed = [
-    { name: "Idris Vaurien", epithet: "Celui qui a signé avec les racines", grade: "Gaelor", status: "actif", joinedOn: "2023-04-11", notes: "Porte la voix de la nation. Ne lève pas le capuchon en public." },
-    { name: "Sève Lanme", epithet: "Main verte du conseil", grade: "Conseil", status: "actif", joinedOn: "2023-05-02", notes: "Tient les cueillettes, les serments de saison et les parchemins du Parvis." },
-    { name: "Orin Cendre", epithet: "L'œil sur les frontières", grade: "Conseil", status: "en_mission", joinedOn: "2023-06-18", notes: "En pourparlers avec les Cendres. Revient à la prochaine lune." },
-    { name: "Hélia Mousse", epithet: "Capitaine des sentinelles", grade: "Sentinelle", status: "actif", joinedOn: "2023-07-01", notes: "Garde les lisières. Parle peu, compte les feux." },
-    { name: "Toren Val", epithet: "Tour nord", grade: "Sentinelle", status: "actif", joinedOn: "2024-01-20", notes: "Relève de nuit. A vu deux bêtes qui connaissaient son nom." },
-    { name: "Bram Keller", epithet: "Plume des archives", grade: "Archiviste", status: "actif", joinedOn: "2023-09-09", notes: "Range les livres. Se dispute avec le gardien sur les degrés." },
-    { name: "Noé Puy", epithet: "Herboriste", grade: "Herboriste", status: "absent", joinedOn: "2024-02-14", notes: "Parti chercher la fleur de lune close. N'a pas donné de date." },
-    { name: "Lise Fange", epithet: "Apprentie des teintures", grade: "Apprentie", status: "actif", joinedOn: "2025-11-03", notes: "Apprend la noix et la ronce. N'ouvre pas les poisons." },
-    { name: "Kael Dorr", epithet: "Ancien sentier", grade: "Exilé", status: "exile", joinedOn: "2023-04-11", notes: "A vendu un nom qui ne devait pas sortir de la racine. Le sceau lui est fermé." },
-    { name: "Maëlle Ronce", epithet: "Tombée sous le bosquet", grade: "Sentinelle", status: "tombe", joinedOn: "2023-08-22", notes: "Morte à l'incendie du bosquet nord. Son office n'a pas été repris." },
+    { name: "Idris Vaurien", epithet: "Celui qui a signé avec les racines", gradeId: gradeId.get("Gaelor")!, status: "actif", joinedOn: "2023-04-11", notes: "Porte la voix de la nation. Ne lève pas le capuchon en public." },
+    { name: "Sève Lanme", epithet: "Main verte du conseil", gradeId: gradeId.get("Conseil")!, status: "actif", joinedOn: "2023-05-02", notes: "Tient les cueillettes, les serments de saison et les lettres du Parvis." },
+    { name: "Orin Cendre", epithet: "L'œil sur les frontières", gradeId: gradeId.get("Conseil")!, status: "en_mission", joinedOn: "2023-06-18", notes: "En pourparlers avec les Cendres. Revient à la prochaine lune." },
+    { name: "Hélia Mousse", epithet: "Capitaine des sentinelles", gradeId: gradeId.get("Sentinelle")!, status: "actif", joinedOn: "2023-07-01", notes: "Garde les lisières. Parle peu, compte les feux." },
+    { name: "Toren Val", epithet: "Tour nord", gradeId: gradeId.get("Sentinelle")!, status: "actif", joinedOn: "2024-01-20", notes: "Relève de nuit. A vu deux bêtes qui connaissaient son nom." },
+    { name: "Bram Keller", epithet: "Plume des archives", gradeId: gradeId.get("Archiviste")!, status: "actif", joinedOn: "2023-09-09", notes: "Range les livres. Se dispute avec le gardien sur les degrés." },
+    { name: "Noé Puy", epithet: "Herboriste", gradeId: gradeId.get("Herboriste")!, status: "absent", joinedOn: "2024-02-14", notes: "Parti chercher la fleur de lune close. N'a pas donné de date." },
+    { name: "Lise Fange", epithet: "Apprentie des teintures", gradeId: gradeId.get("Apprentie")!, status: "actif", joinedOn: "2025-11-03", notes: "Apprend la noix et la ronce. N'ouvre pas les poisons." },
+    { name: "Kael Dorr", epithet: "Ancien sentier", gradeId: gradeId.get("Exilé")!, status: "exile", joinedOn: "2023-04-11", notes: "A vendu un nom qui ne devait pas sortir de la racine. Le sceau lui est fermé." },
+    { name: "Maëlle Ronce", epithet: "Tombée sous le bosquet", gradeId: gradeId.get("Sentinelle")!, status: "tombe", joinedOn: "2023-08-22", notes: "Morte à l'incendie du bosquet nord. Son office n'a pas été repris." },
   ];
 
   const citizenIds = new Map<string, string>();
@@ -140,10 +153,29 @@ async function main() {
     },
   ]);
 
+  const officeRows = await db.select().from(offices);
+  for (const office of officeRows) {
+    if (!office.citizenId || !office.parentId) continue;
+    const parent = officeRows.find((row) => row.id === office.parentId);
+    if (!parent?.citizenId || parent.citizenId === office.citizenId) continue;
+    await db.update(citizens).set({ superiorId: parent.citizenId }).where(eq(citizens.id, office.citizenId));
+  }
+  await db
+    .update(citizens)
+    .set({ superiorId: citizenIds.get("Noé Puy") ?? null })
+    .where(eq(citizens.id, citizenIds.get("Lise Fange")!));
+
+  const categoryNames = ["Gaélia", "Les Cendres", "Comptoir du Saule", "Cercle des Marées", "Route des salines"];
+  const insertedCategories = await db
+    .insert(directoryCategories)
+    .values(categoryNames.map((name, index) => ({ name, sortOrder: index * 10 })))
+    .returning();
+  const categoryId = new Map(insertedCategories.map((category) => [category.name, category.id]));
+
   await db.insert(people).values([
     {
       name: "Idris Vaurien",
-      nation: "Gaélia",
+      categoryId: categoryId.get("Gaélia")!,
       office: "Gaelor",
       summary: "Signe les décrets. On le reconnaît à la lanterne, pas au visage.",
       notes: "Ne reçoit pas sans Sève ou Orin. Le capuchon reste bas, même au conseil.",
@@ -152,16 +184,16 @@ async function main() {
     },
     {
       name: "Sève Lanme",
-      nation: "Gaélia",
+      categoryId: categoryId.get("Gaélia")!,
       office: "Conseillère de la sève",
-      summary: "Fait clouer les parchemins et compte les récoltes avant les fêtes.",
+      summary: "Porte les lettres du conseil et compte les récoltes avant les fêtes.",
       notes: "Répond plus vite que le Gaelor. C'est voulu.",
       featured: true,
       createdBy: admin.id,
     },
     {
       name: "Hélia Mousse",
-      nation: "Gaélia",
+      categoryId: categoryId.get("Gaélia")!,
       office: "Capitaine des sentinelles",
       summary: "Tient les tours. A fermé la lisière nord après l'incendie.",
       notes: "",
@@ -170,7 +202,7 @@ async function main() {
     },
     {
       name: "Bram Keller",
-      nation: "Gaélia",
+      categoryId: categoryId.get("Gaélia")!,
       office: "Archiviste",
       summary: "Écrit ce que les autres oublient. Déteste les degrés posés au hasard.",
       notes: "Bureau sous les rayons des savoirs.",
@@ -179,7 +211,7 @@ async function main() {
     },
     {
       name: "Marrec Holt",
-      nation: "Les Cendres",
+      categoryId: categoryId.get("Les Cendres")!,
       office: "Émissaire",
       summary: "Vient traiter le tribut de bois et le passage des convois. Sourire trop propre pour un homme de cendre.",
       notes: "Ne pas le laisser seul dans l'allée des secrets. Orin s'en charge.",
@@ -188,7 +220,7 @@ async function main() {
     },
     {
       name: "Aude Quill",
-      nation: "Comptoir du Saule",
+      categoryId: categoryId.get("Comptoir du Saule")!,
       office: "Patronne d'atelier",
       summary: "Vend lanternes, teintures et nouvelles. Le comptoir n'est pas gaélien, mais la moitié de la nation y doit quelque chose.",
       notes: "Lettre officielle en cours sur le prix de l'huile.",
@@ -197,7 +229,7 @@ async function main() {
     },
     {
       name: "Elowen Marée",
-      nation: "Cercle des Marées",
+      categoryId: categoryId.get("Cercle des Marées")!,
       office: "Oracle",
       summary: "Dit la marée et, parfois, le nom des morts avant qu'on les compte.",
       notes: "Invitée à la veillée. N'a pas de sceau.",
@@ -206,7 +238,7 @@ async function main() {
     },
     {
       name: "Pask le Boiteux",
-      nation: "Route des salines",
+      categoryId: categoryId.get("Route des salines")!,
       office: "Contrebandier",
       summary: "Connaît un sentier que les sentinelles n'aiment pas. Utile, et à ne pas croire.",
       notes: "",
@@ -500,6 +532,7 @@ async function main() {
       preamble: "Pour que la veillée ne dévore pas ce qui doit repousser.",
       body: "Pendant les trois nuits de la lune rousse, nul ne chasse, nul ne coupe un chêne, nul n'allume un feu hors des foyers marqués par les sentinelles.\n\nLa cueillette de mousse reste permise, une poignée par tronc.",
       status: "published",
+      issuerRole: "Gaelor",
       authorId: admin.id,
       publishedAt: new Date("2026-09-01T18:00:00.000Z"),
     },
@@ -509,6 +542,7 @@ async function main() {
       preamble: "Après le bosquet nord.",
       body: "Tout feu allumé hors d'un foyer de pierre est un tort contre la nation. Les sentinelles peuvent l'éteindre sans autre avis.\n\nLe comptoir du Saule n'est pas un foyer de la nation.",
       status: "published",
+      issuerRole: "Gaelor",
       authorId: admin.id,
       publishedAt: new Date("2026-09-10T18:00:00.000Z"),
     },
@@ -518,6 +552,7 @@ async function main() {
       preamble: "Ancien usage, plus en vigueur.",
       body: "Un dixième du bois de lisière était dû aux Cendres. Cet article est abrogé. Le passage des convois se traite désormais sans tribut fixe.",
       status: "repealed",
+      issuerRole: "Conseil des frontières",
       authorId: admin.id,
       publishedAt: new Date("2024-11-02T18:00:00.000Z"),
       repealedAt: new Date("2026-03-02T18:00:00.000Z"),
@@ -528,32 +563,24 @@ async function main() {
       preamble: "Pas encore promulgué.",
       body: "Le conseil hésite. Faut-il interdire de répondre quand une bête dit votre nom ? Toren demande une règle. Idris n'a pas signé.",
       status: "draft",
+      issuerRole: "Conseil de la sève",
       authorId: admin.id,
     },
   ]);
 
-  await db.insert(parchments).values([
+  await db.insert(voiceNotes).values([
     {
-      title: "La sève a tourné",
-      body: "Trois chênes ont donné de la sève lumineuse hors saison. Le brûlé est resté sec.\n\nNoé Puy est parti vers la fleur de lune close. Il n'emmène pas d'apprenti. Ceux qui le croisent sur un sentier le laissent passer et le notent au recensement comme absent, pas comme perdu.\n\nLa veillée reste à la date dite. On n'avance pas une fête parce que la terre s'impatiente.",
-      pinned: false,
-      status: "published",
+      kind: "reunion",
+      title: "Conseil du 12 septembre",
+      body: "Présents : Idris, Sève, Orin (par messager), Hélia.\n\n- Feux hors foyer : G-13 tient. Le comptoir a protesté, on ne cède pas.\n- Noé part vers la fleur de lune close. Absent au recensement, pas perdu.\n- Tour du saule toujours vacante. Hélia propose Toren en doublon : refusé pour cette lune.",
+      occurredOn: "2026-09-12",
       authorId: admin.id,
-      publishedAt: new Date("2026-09-14T16:00:00.000Z"),
     },
     {
-      title: "Veillée aux racines",
-      body: "La veillée se tient à la racine maîtresse, à la tombée du jour. Les feux hors foyer sont déjà interdits : relisez G-13 avant de sortir une lampe à huile du comptoir.\n\nLes noms des absents seront lus. Maëlle aussi.",
-      pinned: true,
-      status: "published",
-      authorId: admin.id,
-      publishedAt: new Date("2026-09-18T16:00:00.000Z"),
-    },
-    {
-      title: "Mot pour le conseil, pas encore cloué",
-      body: "Orin veut qu'on prévienne les Cendres avant la veillée. Sève veut qu'on ne prévienne personne. Ce brouillon ne sort pas du cabinet.",
-      pinned: false,
-      status: "draft",
+      kind: "evenement",
+      title: "Sève lumineuse hors saison",
+      body: "Trois chênes du versant ouest ont donné une sève qui luit après le coucher. Le brûlé reste sec.\n\nÀ noter pour la veillée : on n'avance pas la fête. On observe.",
+      occurredOn: "2026-09-14",
       authorId: admin.id,
     },
   ]);

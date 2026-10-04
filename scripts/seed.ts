@@ -6,10 +6,10 @@ loadEnvConfig(process.cwd());
 
 async function main() {
   const { getDb } = await import("../src/lib/db");
-  const { books, chapters, grants, offices, parchments, shelves, users } = await import("../src/lib/db/schema");
+  const { books, chapters, grants, letters, offices, shelves, users } = await import("../src/lib/db/schema");
   const { DEFAULT_SHELVES, allGrantKeys } = await import("../src/lib/permissions");
 
-  const email = (process.env.ADMIN_EMAIL || "gardien@gaelia.local").toLowerCase();
+  const username = (process.env.ADMIN_USERNAME || "gardien").toLowerCase();
   const password = process.env.ADMIN_PASSWORD ?? "";
   const name = process.env.ADMIN_NAME || "Gardien des archives";
 
@@ -30,12 +30,12 @@ async function main() {
   }
 
   const shelfRows = await db.query.shelves.findMany();
-  let admin = await db.query.users.findFirst({ where: eq(users.email, email) });
+  let admin = await db.query.users.findFirst({ where: eq(users.username, username) });
   if (!admin) {
     const [created] = await db
       .insert(users)
       .values({
-        email,
+        username,
         displayName: name,
         title: "Gardien technique",
         passwordHash: await bcrypt.hash(password, 12),
@@ -93,14 +93,14 @@ async function main() {
         "",
         "La bibliothèque est faite de rayons. Chaque écrit a un degré de 1 à 5. Qui a le degré 2 sur les secrets lit les secrets 1 et 2, et pas le 5.",
         "",
-        "Les décrets, les parchemins et les lettres officielles sont rédigés par le Gaelor et le Conseil. Une fois publiés, ils sont lus sur le Parvis, par les Gaéliens comme par les visiteurs.",
+        "Les décrets et les lettres officielles sont rédigés par le Gaelor et le Conseil. Une fois publiés, ils sont lus sur le Parvis, par les Gaéliens comme par les visiteurs. Le cahier interne reste privé.",
         "",
         "Un modèle (citoyen, archiviste, chercheur, scribe, conseil, Gaelor) pose des degrés de départ. Ensuite, chaque section se règle une à une.",
       ].join("\n"),
     });
   } else if (charter) {
     const door = await db.query.chapters.findFirst({ where: eq(chapters.bookId, charter.id) });
-    if (door?.body.includes("case est cochée")) {
+    if (door?.body.includes("case est cochée") || door?.body.includes("parchemins")) {
       await db
         .update(chapters)
         .set({
@@ -111,7 +111,7 @@ async function main() {
             "",
             "La bibliothèque est faite de rayons. Chaque écrit a un degré de 1 à 5. Qui a le degré 2 sur les secrets lit les secrets 1 et 2, et pas le 5.",
             "",
-            "Les décrets, les parchemins et les lettres officielles sont rédigés par le Gaelor et le Conseil. Une fois publiés, ils sont lus sur le Parvis, par les Gaéliens comme par les visiteurs.",
+            "Les décrets et les lettres officielles sont rédigés par le Gaelor et le Conseil. Une fois publiés, ils sont lus sur le Parvis, par les Gaéliens comme par les visiteurs. Le cahier interne reste privé.",
             "",
             "Un modèle (citoyen, archiviste, chercheur, scribe, conseil, Gaelor) pose des degrés de départ. Ensuite, chaque section se règle une à une.",
           ].join("\n"),
@@ -120,17 +120,18 @@ async function main() {
     }
   }
 
-  const notice = await db.query.parchments.findFirst({ where: eq(parchments.title, "Les archives sont ouvertes") });
+  const notice = await db.query.letters.findFirst({ where: eq(letters.subject, "Les archives sont ouvertes") });
   if (!notice) {
-    await db.insert(parchments).values({
-      title: "Les archives sont ouvertes",
+    await db.insert(letters).values({
+      subject: "Les archives sont ouvertes",
       body: "Le Hall, l'annuaire, la bibliothèque et le recensement attendent ce que la nation voudra y déposer. Les images des livres se rangent dans le cellier Neon.",
-      pinned: true,
+      status: "published",
+      publishedAt: new Date(),
       authorId: admin.id,
     });
   }
 
-  console.log(`Gardien prêt : ${email}`);
+  console.log(`Gardien prêt : ${username}`);
 }
 
 main().catch((error) => {

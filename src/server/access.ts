@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { actionError, type ActionState } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { grants, users } from "@/lib/db/schema";
-import { readText } from "@/lib/format";
+import { normalizeUsername, readText, validUsername } from "@/lib/format";
 import { can, clampLevel, knownGrantKeys } from "@/lib/permissions";
 
 async function guard() {
@@ -62,23 +62,23 @@ export async function saveAccess(_state: ActionState, formData: FormData): Promi
 export async function createAccount(_state: ActionState, formData: FormData): Promise<ActionState> {
   const actor = await guard();
   if (!actor) return { error: "Tu ne peux pas ouvrir un compte." };
-  const email = readText(formData, "email", 180).toLowerCase();
+  const username = normalizeUsername(readText(formData, "username", 32));
   const displayName = readText(formData, "displayName", 80);
   const title = readText(formData, "title", 120);
   const password = String(formData.get("password") ?? "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Le sceau doit être une adresse valide." };
+  if (!validUsername(username)) return { error: "Le nom d’utilisateur fait 3 à 24 signes : lettres, chiffres, tiret." };
   if (displayName.length < 2) return { error: "Le nom doit contenir au moins deux lettres." };
   if (password.length < 8) return { error: "Le mot de passe doit faire au moins 8 caractères." };
 
   try {
-    const existing = await getDb().query.users.findFirst({ where: eq(users.email, email) });
-    if (existing) return { error: "Ce sceau existe déjà." };
+    const existing = await getDb().query.users.findFirst({ where: eq(users.username, username) });
+    if (existing) return { error: "Ce nom d’utilisateur est déjà pris." };
     const shelfRows = await getDb().query.shelves.findMany();
     const chosen = selectedGrants(formData, shelfRows.map((shelf) => shelf.slug));
     const [created] = await getDb()
       .insert(users)
       .values({
-        email,
+        username,
         displayName,
         title: title || null,
         passwordHash: await bcrypt.hash(password, 12),

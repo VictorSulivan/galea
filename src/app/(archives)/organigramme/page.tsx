@@ -20,26 +20,35 @@ export default async function OrgPage({ searchParams }: { searchParams: Promise<
     db.select().from(citizens).orderBy(asc(citizens.name)),
   ]);
   const names = new Map(citizenRows.map((citizen) => [citizen.id, citizen.name]));
-  const nodes: OrgNode[] = officeRows.map((office) => ({
-    id: office.id,
-    parentId: office.parentId,
-    title: office.title,
-    summary: office.summary,
-    sortOrder: office.sortOrder,
-    citizenId: office.citizenId,
-    citizenName: office.citizenId ? names.get(office.citizenId) ?? null : null,
-  }));
+  const nodes: OrgNode[] = officeRows.map((office) => {
+    const holder = office.citizenId ? citizenRows.find((citizen) => citizen.id === office.citizenId) : null;
+    const superiorName = holder?.superiorId ? names.get(holder.superiorId) ?? null : null;
+    return {
+      id: office.id,
+      parentId: office.parentId,
+      title: office.title,
+      summary: office.summary,
+      sortOrder: office.sortOrder,
+      citizenId: office.citizenId,
+      citizenName: office.citizenId ? names.get(office.citizenId) ?? null : null,
+      superiorName,
+    };
+  });
 
   return (
     <div>
       <PageHeader
         kicker="La nation"
         title="Organigramme"
-        lede="La pyramide de la nation. Monte, descends, et choisis une place."
+        lede="Les offices de la nation, du Gaelor jusqu’aux places vacantes. Chaque titulaire, hormis le Gaelor, relève d’un supérieur."
       />
       <OrgPyramid
         nodes={nodes}
-        citizens={citizenRows.map((citizen) => ({ id: citizen.id, name: citizen.name }))}
+        citizens={citizenRows.map((citizen) => ({
+          id: citizen.id,
+          name: citizen.name,
+          superiorId: citizen.superiorId,
+        }))}
         writable={writable}
         initialId={bureau}
       />

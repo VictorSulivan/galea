@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit, Source_Serif_4 } from "next/font/google";
-import { Forest } from "@/components/forest";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -29,10 +28,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${fraunces.variable} ${outfit.variable} ${sourceSerif.variable} h-full antialiased`}>
-      <body className="min-h-full">
-        <Forest />
-        {children}
-      </body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

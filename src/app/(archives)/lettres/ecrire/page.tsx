@@ -17,7 +17,7 @@ export default async function ComposePage() {
         title="Nouvelle lettre"
         lede="Elle reste dans les archives tant qu'elle n'est pas publiée. Une fois posée sur le Parvis, Gaéliens et visiteurs peuvent la lire."
       />
-      <Panel>
+      <Panel sheet>
         <LetterEditor initial={{ subject: "", body: "", status: "draft" }} />
       </Panel>
     </div>

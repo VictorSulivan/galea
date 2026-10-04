@@ -1,7 +1,7 @@
 import { ActionForm } from "@/components/action-form";
 import { Badge, Button, Field, PageHeader, Panel, inputClass } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
-import { grantLabel, levelLabel, type Sensitivity } from "@/lib/permissions";
+import { describeGrant, grantLabel, levelLabel, type Sensitivity } from "@/lib/permissions";
 import { updateIdentity, updatePassword } from "@/server/session";
 import { redirect } from "next/navigation";
 import { asc } from "drizzle-orm";
@@ -22,9 +22,9 @@ export default async function AccountPage() {
 
   return (
     <div>
-      <PageHeader kicker="Toi" title="Mon sceau" lede="Ton nom dans les archives, et les portes qui te sont ouvertes." />
+      <PageHeader kicker="Toi" title="Mon sceau" lede="Ton nom dans les archives, et ce que chaque porte te permet vraiment." />
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel>
+        <Panel sheet>
           <h2 className="font-display text-3xl">Identité</h2>
           <div className="mt-4">
             <ActionForm action={updateIdentity}>
@@ -58,14 +58,21 @@ export default async function AccountPage() {
         <Panel>
           <h2 className="font-display text-3xl">Portes ouvertes</h2>
           {user.isSuperAdmin ? <p className="mt-2 text-sm text-ink-soft">Gardien technique : toutes les portes restent ouvertes.</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 grid gap-3">
             {user.grants.length === 0 && !user.isSuperAdmin ? <p className="text-ink-soft">Aucun degré n’est ouvert pour l’instant.</p> : null}
             {user.isSuperAdmin ? <Badge>Accès total · degré 5</Badge> : null}
-            {(user.isSuperAdmin ? [] : user.grants).map((grant) => (
-              <Badge key={grant.key}>
-                {grantLabel(grant.key, refs)} · {levelLabel(grant.level)}
-              </Badge>
-            ))}
+            {(user.isSuperAdmin ? [] : user.grants)
+              .slice()
+              .sort((a, b) => a.key.localeCompare(b.key, "fr"))
+              .map((grant) => (
+                <div key={grant.key} className="rounded-2xl border border-white/10 px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-display text-xl">{grantLabel(grant.key, refs)}</p>
+                    <Badge>{levelLabel(grant.level)}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-ink-soft">{describeGrant(grant.key, grant.level, refs)}</p>
+                </div>
+              ))}
           </div>
         </Panel>
       </div>

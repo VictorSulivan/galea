@@ -54,7 +54,7 @@ export const PLACE_LORE: GuidePlace[] = [
     href: "/voix",
     page: 2,
     name: "La Voix",
-    about: "La Voix. Décrets, parchemins, lettres. Seuls le Gaelor et le conseil rédigent. Quand c’est achevé, on le cloue au Parvis : Gaéliens et étrangers peuvent le lire.",
+    about: "La Voix. Décrets, lettres officielles, et le cahier interne des réunions. Seuls le Gaelor et le conseil rédigent. Les textes publics vont au Parvis ; le cahier reste privé.",
   },
   {
     href: "/parvis",

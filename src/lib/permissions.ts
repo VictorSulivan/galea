@@ -1,20 +1,78 @@
 export const POWER_LEVELS = [
-  { level: 0, label: "Fermé" },
-  { level: 1, label: "I · Novice" },
-  { level: 2, label: "II · Initié" },
-  { level: 3, label: "III · Gardien" },
-  { level: 4, label: "IV · Conseil" },
-  { level: 5, label: "V · Gaelor" },
+  { level: 0, label: "Fermé", brief: "Rien" },
+  { level: 1, label: "I · Novice", brief: "Entrer / lire le simple" },
+  { level: 2, label: "II · Initié", brief: "Lire plus loin" },
+  { level: 3, label: "III · Gardien", brief: "Écrire / tenir" },
+  { level: 4, label: "IV · Conseil", brief: "Diriger la Voix" },
+  { level: 5, label: "V · Gaelor", brief: "Plein pouvoir" },
 ] as const;
 
+export type ZoneEffect = { min: number; text: string };
+
 export const ZONES = [
-  { key: "zone.hall", label: "Le Hall", hint: "1 pour entrer. Les degrés plus hauts ne changent pas cette salle." },
-  { key: "zone.annuaire", label: "Annuaire", hint: "1 consulter, 3 rédiger les fiches." },
-  { key: "zone.bibliotheque", label: "Bibliothèque", hint: "1 entrer, 3 écrire dans les rayons ouverts, 5 ordonner les rayons." },
-  { key: "zone.recensement", label: "Recensement", hint: "1 consulter, 3 tenir les membres." },
-  { key: "zone.organigramme", label: "Organigramme", hint: "1 voir l'arbre, 3 le dresser." },
-  { key: "zone.voix", label: "La Voix", hint: "4 Conseil et 5 Gaelor rédigent décrets, parchemins et lettres, puis les publient sur le Parvis." },
-  { key: "zone.administration", label: "Salle du sceau", hint: "4 gère les degrés d'accès. 5 est le plein pouvoir." },
+  {
+    key: "zone.hall",
+    label: "Le Hall",
+    summary: "Table d’accueil de l’espace privé.",
+    effects: [{ min: 1, text: "Entrer au Hall et voir le résumé (lettres, décrets, livres récents)." }],
+  },
+  {
+    key: "zone.annuaire",
+    label: "Annuaire",
+    summary: "Personnes du serveur. Les catégories se définissent dans l’annuaire.",
+    effects: [
+      { min: 1, text: "Consulter les fiches et les catégories." },
+      { min: 3, text: "Créer ou corriger une fiche, et gérer la liste des catégories." },
+    ],
+  },
+  {
+    key: "zone.bibliotheque",
+    label: "Bibliothèque",
+    summary: "Rayons et livres. Les rayons se créent dans la salle du sceau.",
+    effects: [
+      { min: 1, text: "Entrer dans la bibliothèque (il faut aussi un degré sur chaque rayon)." },
+      { min: 3, text: "Écrire ou corriger des livres dans les rayons déjà ouverts à cette personne." },
+      { min: 5, text: "Créer, renommer ou retirer des rayons (salle du sceau → Rayons)." },
+    ],
+  },
+  {
+    key: "zone.recensement",
+    label: "Recensement",
+    summary: "Membres de Gaélia. Grades et hiérarchie se définissent ici.",
+    effects: [
+      { min: 1, text: "Consulter les membres et leurs fiches." },
+      { min: 3, text: "Inscrire un membre, choisir grade et supérieur, gérer la liste des grades." },
+    ],
+  },
+  {
+    key: "zone.organigramme",
+    label: "Organigramme",
+    summary: "Offices de la nation (places administrables).",
+    effects: [
+      { min: 1, text: "Voir l’arbre des offices et qui les tient." },
+      { min: 3, text: "Créer, déplacer ou retirer un office, et y asseoir un membre." },
+    ],
+  },
+  {
+    key: "zone.voix",
+    label: "La Voix",
+    summary: "Décrets, lettres officielles et cahier interne.",
+    effects: [
+      {
+        min: 4,
+        text: "Rédiger et publier décrets et lettres (Parvis), et tenir le cahier des réunions (privé).",
+      },
+    ],
+  },
+  {
+    key: "zone.administration",
+    label: "Salle du sceau",
+    summary: "Comptes et degrés d’accès.",
+    effects: [
+      { min: 4, text: "Ouvrir un compte et régler les portes de chaque personne." },
+      { min: 5, text: "Même pouvoir, avec le plein degré Gaelor sur le reste si le modèle Gaelor est appliqué." },
+    ],
+  },
 ] as const;
 
 export const NAV = [
@@ -27,12 +85,36 @@ export const NAV = [
 ] as const;
 
 export const PRESETS = [
-  { id: "citoyen", label: "Citoyen" },
-  { id: "archiviste", label: "Archiviste" },
-  { id: "chercheur", label: "Chercheur" },
-  { id: "scribe", label: "Scribe" },
-  { id: "conseil", label: "Conseil" },
-  { id: "gaelor", label: "Gaelor" },
+  {
+    id: "citoyen",
+    label: "Citoyen",
+    about: "Entre, lit l’annuaire, le recensement, l’organigramme et les rayons ouverts.",
+  },
+  {
+    id: "archiviste",
+    label: "Archiviste",
+    about: "Comme le citoyen, et écrit dans les rayons ouverts ; lit un peu les rayons restreints.",
+  },
+  {
+    id: "chercheur",
+    label: "Chercheur",
+    about: "Citoyen qui écrit surtout dans le rayon Recherche.",
+  },
+  {
+    id: "scribe",
+    label: "Scribe",
+    about: "Citoyen qui tient aussi l’annuaire (fiches et catégories).",
+  },
+  {
+    id: "conseil",
+    label: "Conseil",
+    about: "Tient nation et Voix : écriture large, décrets, lettres, cahier, et peut régler les accès.",
+  },
+  {
+    id: "gaelor",
+    label: "Gaelor",
+    about: "Tout ouvert au degré 5 — modèle de départ pour le chef de nation.",
+  },
 ] as const;
 
 export type PresetId = (typeof PRESETS)[number]["id"];
@@ -291,4 +373,42 @@ export function grantLabel(key: string, shelves: ShelfRef[]) {
 
 export function levelLabel(level: number) {
   return POWER_LEVELS.find((item) => item.level === level)?.label ?? `Niveau ${level}`;
+}
+
+export function zoneEffectsAt(effects: readonly ZoneEffect[], level: number) {
+  return effects.filter((effect) => level >= effect.min).map((effect) => effect.text);
+}
+
+export function shelfEffectsAt(level: number, sensitivity: Sensitivity) {
+  if (level <= 0) return ["Rayon fermé : aucun livre de cette section."];
+  const lines = [
+    `Lire les écrits de degré ${level} et en dessous dans ce rayon.`,
+  ];
+  if (sensitivity === "secret") {
+    lines.push("Rayon secret : seuls ceux à qui tu ouvres ce degré y entrent.");
+  } else if (sensitivity === "restreint") {
+    lines.push("Rayon restreint : réservé au cercle que tu choisis.");
+  }
+  lines.push("Pour y écrire, il faut aussi le degré III sur la Bibliothèque.");
+  return lines;
+}
+
+export function describeGrant(key: string, level: number, shelves: ShelfRef[]) {
+  const zone = ZONES.find((item) => item.key === key);
+  if (zone) {
+    const unlocked = zoneEffectsAt(zone.effects, level);
+    if (level <= 0) return "Fermé.";
+    if (unlocked.length === 0) return `Degré ${level} : pas encore d’effet utile (seuil plus haut).`;
+    return unlocked.join(" ");
+  }
+  const match = /^rayon\.([a-z0-9-]+)$/.exec(key);
+  if (!match) return key;
+  const shelf = shelves.find((item) => item.slug === match[1]);
+  return shelfEffectsAt(level, shelf?.sensitivity ?? "ouvert").join(" ");
+}
+
+export function sensitivityLabel(value: Sensitivity) {
+  if (value === "secret") return "Secret";
+  if (value === "restreint") return "Restreint";
+  return "Ouvert";
 }

@@ -19,6 +19,7 @@ export type StageBook = {
   level: number;
   occurredOn: string | null;
   author: string;
+  coverKey: string | null;
   haystack: string;
 };
 
@@ -63,6 +64,7 @@ export async function loadLibraryStage(user: SessionUser): Promise<StageShelf[]>
       level: book.level,
       occurredOn: book.occurredOn,
       author: book.author?.displayName ?? "Main anonyme",
+      coverKey: book.coverKey,
       haystack,
     });
     byShelf.set(shelf.id, list);

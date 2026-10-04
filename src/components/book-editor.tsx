@@ -1,6 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { DEFAULT_BOOK_COVER } from "@/lib/book-cover";
+import {
+  PAGE_BODY_LINES_MAX,
+  PAGE_BODY_MAX,
+  PAGE_TITLE_MAX,
+  clampPageBody,
+  pageLineCount,
+  pageOverflowMessage,
+  pageVisualLineCount,
+} from "@/lib/book-page";
 import { saveBook } from "@/server/library";
 import { FileField } from "./file-field";
 import { Markdown } from "./markdown";
@@ -30,13 +40,58 @@ export function BookEditor({
     chapters: Chapter[];
   };
 }) {
-  const [chapters, setChapters] = useState<Chapter[]>(initial.chapters.length ? initial.chapters : [{ title: "Premier feuillet", body: "" }]);
+  const [chapters, setChapters] = useState<Chapter[]>(
+    initial.chapters.length
+      ? initial.chapters.map((item) => ({ title: item.title.slice(0, PAGE_TITLE_MAX), body: clampPageBody(item.body) }))
+      : [{ title: "Page 1", body: "" }],
+  );
   const [active, setActive] = useState(0);
-  const [preview, setPreview] = useState(false);
+  const [limitNotice, setLimitNotice] = useState("");
   const chapter = chapters[active] ?? chapters[0];
+  const overflow = pageOverflowMessage(chapters);
+  const chars = chapter?.body.length ?? 0;
+  const lines = chapter ? Math.max(pageLineCount(chapter.body), pageVisualLineCount(chapter.body)) : 0;
 
-  function update(partial: Partial<Chapter>) {
-    setChapters((current) => current.map((item, index) => (index === active ? { ...item, ...partial } : item)));
+  function openPage(index: number) {
+    setLimitNotice("");
+    setActive(index);
+  }
+
+  function patchActive(partial: Partial<Chapter>) {
+    if (partial.body !== undefined) {
+      const clamped = clampPageBody(partial.body);
+      if (clamped !== partial.body) {
+        setLimitNotice(`Feuillet limité à ${PAGE_BODY_MAX} caractères et ${PAGE_BODY_LINES_MAX} lignes.`);
+      } else {
+        setLimitNotice("");
+      }
+      partial = { ...partial, body: clamped };
+    } else {
+      setLimitNotice("");
+    }
+    setChapters((current) =>
+      current.map((item, index) => {
+        if (index !== active) return item;
+        return {
+          title: partial.title !== undefined ? partial.title.slice(0, PAGE_TITLE_MAX) : item.title,
+          body: partial.body !== undefined ? partial.body : item.body,
+        };
+      }),
+    );
+  }
+
+  function appendImage(src: string) {
+    if (!chapter) return;
+    const addition = `\n\n![illustration](${src})\n`;
+    const next = clampPageBody(`${chapter.body}${addition}`);
+    if (next === chapter.body) {
+      setLimitNotice(`Plus de place sur ce feuillet (${PAGE_BODY_MAX} caractères / ${PAGE_BODY_LINES_MAX} lignes).`);
+      return;
+    }
+    if (next !== `${chapter.body}${addition}`) {
+      setLimitNotice(`Feuillet limité à ${PAGE_BODY_MAX} caractères et ${PAGE_BODY_LINES_MAX} lignes.`);
+    }
+    patchActive({ body: next });
   }
 
   return (
@@ -44,105 +99,159 @@ export function BookEditor({
       <input type="hidden" name="shelfId" value={shelfId} />
       <input type="hidden" name="bookId" value={bookId ?? ""} />
       <input type="hidden" name="chapters" value={JSON.stringify(chapters)} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Titre">
-          <input name="title" required defaultValue={initial.title} className={inputClass} />
-        </Field>
-        <Field label="Sous-titre">
-          <input name="subtitle" defaultValue={initial.subtitle} className={inputClass} />
-        </Field>
-      </div>
-      <Field label="Résumé">
-        <textarea name="summary" rows={3} defaultValue={initial.summary} className={inputClass} />
-      </Field>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Statut">
-          <select name="status" defaultValue={initial.status} className={inputClass}>
-            <option value="draft">Brouillon</option>
-            <option value="published">Publié</option>
-            <option value="archived">Archivé</option>
-          </select>
-        </Field>
-        <Field label="Degré">
-          <select name="level" defaultValue={String(Math.min(initial.level || 1, maxLevel))} className={inputClass}>
-            {POWER_LEVELS.filter((item) => item.level >= 1 && item.level <= Math.max(1, maxLevel)).map((item) => (
-              <option key={item.level} value={item.level}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Date concernée">
-          <input type="date" name="occurredOn" defaultValue={initial.occurredOn} className={inputClass} />
-        </Field>
-      </div>
-      <FileField name="coverKey" label="Couverture" usage="livre" shelfId={shelfId} current={initial.coverKey} />
-      <div className="flex flex-wrap gap-2">
-        {chapters.map((item, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => setActive(index)}
-            className={`rounded-full px-3 py-1.5 text-sm ${index === active ? "bg-moss text-parchment" : "bg-white/60 text-ink"}`}
-          >
-            {item.title || `Feuillet ${index + 1}`}
-          </button>
-        ))}
-        <button
-          type="button"
-          className="rounded-full border border-dashed border-gold-deep px-3 py-1.5 text-sm"
-          onClick={() => {
-            setChapters((current) => [...current, { title: `Feuillet ${current.length + 1}`, body: "" }]);
-            setActive(chapters.length);
-          }}
-        >
-          Ajouter un feuillet
-        </button>
-      </div>
-      {chapter ? (
-        <div className="grid gap-3">
-          <Field label="Titre du feuillet">
-            <input value={chapter.title} onChange={(event) => update({ title: event.target.value })} className={inputClass} />
-          </Field>
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPreview((value) => !value)}>
-              {preview ? "Revenir au texte" : "Aperçu"}
-            </Button>
-            {chapters.length > 1 ? (
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => {
-                  setChapters((current) => current.filter((_, index) => index !== active));
-                  setActive(0);
-                }}
-              >
-                Retirer ce feuillet
-              </Button>
-            ) : null}
-          </div>
-          {preview ? (
-            <div className="rounded-2xl bg-white/50 p-5">
-              <Markdown source={chapter.body} />
+      <div className="codex">
+        <div className="codex-spread">
+          <div className="codex-page">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">Le livre</p>
+            <div className="mt-3 grid gap-3">
+              <Field label="Titre">
+                <input name="title" required defaultValue={initial.title} className={inputClass} />
+              </Field>
+              <Field label="Sous-titre">
+                <input name="subtitle" defaultValue={initial.subtitle} className={inputClass} />
+              </Field>
+              <Field label="Résumé">
+                <textarea name="summary" rows={2} defaultValue={initial.summary} className={inputClass} />
+              </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Statut">
+                  <select name="status" defaultValue={initial.status} className={inputClass}>
+                    <option value="draft">Brouillon</option>
+                    <option value="published">Publié</option>
+                    <option value="archived">Archivé</option>
+                  </select>
+                </Field>
+                <Field label="Étagère">
+                  <select name="level" defaultValue={String(Math.min(initial.level || 1, maxLevel))} className={inputClass}>
+                    {POWER_LEVELS.filter((item) => item.level >= 1 && item.level <= Math.max(1, maxLevel)).map((item) => (
+                      <option key={item.level} value={item.level}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <Field label="Date concernée">
+                <input type="date" name="occurredOn" defaultValue={initial.occurredOn} className={inputClass} />
+              </Field>
+              <FileField name="coverKey" label="Couverture" usage="livre" shelfId={shelfId} current={initial.coverKey} fallback={DEFAULT_BOOK_COVER} />
             </div>
-          ) : (
-            <textarea value={chapter.body} rows={16} onChange={(event) => update({ body: event.target.value })} className={inputClass} />
-          )}
-          <FileField
-            label="Image dans le feuillet"
-            usage="livre"
-            shelfId={shelfId}
-            onUploaded={(src) =>
-              setChapters((current) =>
-                current.map((item, index) =>
-                  index === active ? { ...item, body: `${item.body}\n\n![illustration](${src})\n` } : item,
-                ),
-              )
-            }
-          />
+            <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-gold-deep">Pages</p>
+            <ol className="mt-2 grid gap-1">
+              {chapters.map((item, index) => (
+                <li key={index}>
+                  <button type="button" data-on={index === active ? "true" : "false"} className="codex-page-link font-serif" onClick={() => openPage(index)}>
+                    <span className="mr-2 text-gold-deep">{index + 1}</span>
+                    {item.title || `Page ${index + 1}`}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <button
+              type="button"
+              className="mt-3 text-sm text-gold-deep underline decoration-gold/40"
+              onClick={() => {
+                const index = chapters.length;
+                setChapters((current) => [...current, { title: `Page ${current.length + 1}`, body: "" }]);
+                openPage(index);
+              }}
+            >
+              Nouvelle page
+            </button>
+          </div>
+
+          {chapter ? (
+            <div className="codex-page flex flex-col">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">
+                  Page {active + 1} sur {chapters.length}
+                </p>
+                <div className="flex gap-3 text-sm">
+                  <button type="button" className="text-gold-deep disabled:opacity-40" disabled={active === 0} onClick={() => openPage(active - 1)}>
+                    Précédente
+                  </button>
+                  <button
+                    type="button"
+                    className="text-gold-deep disabled:opacity-40"
+                    disabled={active >= chapters.length - 1}
+                    onClick={() => openPage(active + 1)}
+                  >
+                    Suivante
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <Field label="Titre de la page">
+                  <input
+                    value={chapter.title}
+                    maxLength={PAGE_TITLE_MAX}
+                    onChange={(event) => patchActive({ title: event.target.value })}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Texte de la page">
+                  <textarea
+                    key="book-page-body-500"
+                    value={chapter.body}
+                    rows={12}
+                    maxLength={500}
+                    onChange={(event) => patchActive({ body: event.target.value })}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") return;
+                      if (pageLineCount(chapter.body) >= PAGE_BODY_LINES_MAX) {
+                        event.preventDefault();
+                        setLimitNotice(`Maximum ${PAGE_BODY_LINES_MAX} lignes par feuillet.`);
+                      }
+                    }}
+                    placeholder="500 caractères et 12 lignes maximum."
+                    className={`${inputClass} book-page-compose`}
+                  />
+                </Field>
+              </div>
+
+              <p className={`mt-2 text-xs ${chars >= 500 || lines >= 12 ? "text-clay" : "text-ink-soft"}`}>
+                {chars}/500 caractères · {lines}/12 lignes
+              </p>
+              {limitNotice ? <p className="mt-1 text-sm text-clay">{limitNotice}</p> : null}
+              {overflow ? <p className="mt-1 text-sm text-clay">{overflow}</p> : null}
+
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">Aperçu</p>
+                <div className="book-leaf book-leaf-editor mt-2">
+                  <p className="reader-kicker">
+                    Page {active + 1}
+                    {chapters.length ? ` sur ${chapters.length}` : ""}
+                  </p>
+                  <h2 className="reader-chapter">{chapter.title || "Page"}</h2>
+                  <div className="book-leaf-body">
+                    <Markdown source={chapter.body || "*Cette page est encore blanche.*"} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {chapters.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => {
+                      setChapters((current) => current.filter((_, index) => index !== active));
+                      openPage(Math.max(0, active - 1));
+                    }}
+                  >
+                    Retirer cette page
+                  </Button>
+                ) : null}
+              </div>
+              <FileField label="Image dans la page" usage="livre" shelfId={shelfId} onUploaded={appendImage} />
+              <Button type="submit" className="mt-4" disabled={Boolean(overflow)}>
+                Enregistrer le livre
+              </Button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      <Button type="submit">Enregistrer le livre</Button>
+      </div>
     </ActionForm>
   );
 }

@@ -6,9 +6,10 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { actionError, type ActionState } from "@/lib/action";
 import { getDb } from "@/lib/db";
-import { books, chapters, shelves } from "@/lib/db/schema";
+import { books, chapters, grants, shelves } from "@/lib/db/schema";
 import { readDay, readText, slugify } from "@/lib/format";
-import { can, canWriteBook, canWriteShelf, clampLevel, shelfLevel, type Sensitivity } from "@/lib/permissions";
+import { PAGE_TITLE_MAX, clampPageBody, pageOverflowMessage } from "@/lib/book-page";
+import { can, canWriteBook, canWriteShelf, clampLevel, shelfKey, shelfLevel, type Sensitivity } from "@/lib/permissions";
 import { safeObjectKey } from "@/lib/storage";
 
 type ChapterInput = { title: string; body: string };
@@ -19,8 +20,8 @@ function parseChapters(raw: string): ChapterInput[] | null {
     if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 80) return null;
     return parsed.map((item) => {
       const chapter = item as { title?: unknown; body?: unknown };
-      const title = typeof chapter.title === "string" ? chapter.title.trim().slice(0, 180) : "";
-      const body = typeof chapter.body === "string" ? chapter.body.slice(0, 100_000) : "";
+      const title = typeof chapter.title === "string" ? chapter.title.trim().slice(0, PAGE_TITLE_MAX) : "";
+      const body = typeof chapter.body === "string" ? clampPageBody(chapter.body) : "";
       return { title, body };
     });
   } catch {
@@ -46,6 +47,8 @@ export async function saveBook(_state: ActionState, formData: FormData): Promise
   if (!chapterList || chapterList.some((chapter) => !chapter.title)) {
     return { error: "Chaque chapitre doit avoir un titre." };
   }
+  const overflow = pageOverflowMessage(chapterList);
+  if (overflow) return { error: overflow };
 
   try {
     const shelf = await getDb().query.shelves.findFirst({ where: eq(shelves.id, shelfId) });
@@ -167,12 +170,13 @@ export async function saveShelf(_state: ActionState, formData: FormData): Promis
     }
     const sortOrder = existing.reduce((max, shelf) => Math.max(max, shelf.sortOrder), 0) + 10;
     await getDb().insert(shelves).values({ name, description, sensitivity, slug, sortOrder });
+    await getDb().insert(grants).values({ userId: user.id, key: shelfKey(slug), level: 5 }).onConflictDoNothing();
   } catch (error) {
     return actionError(error);
   }
 
   revalidatePath("/bibliotheque");
   revalidatePath("/administration/rayons");
-  redirect("/administration/rayons");
+  redirect(readText(formData, "back", 40) === "bibliotheque" ? `/bibliotheque/${slug}` : "/administration/rayons");
 }
 

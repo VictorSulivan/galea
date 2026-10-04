@@ -7,7 +7,7 @@ import { readSession, SESSION_COOKIE, signSession } from "./session-token";
 
 export type SessionUser = {
   id: string;
-  email: string;
+  username: string;
   displayName: string;
   title: string | null;
   isSuperAdmin: boolean;
@@ -29,7 +29,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 
   return {
     id: user.id,
-    email: user.email,
+    username: user.username,
     displayName: user.displayName,
     title: user.title,
     isSuperAdmin: user.isSuperAdmin,

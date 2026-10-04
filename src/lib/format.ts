@@ -30,6 +30,14 @@ export function slugify(input: string) {
     .slice(0, 60);
 }
 
+export function normalizeUsername(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function validUsername(value: string) {
+  return /^[a-z0-9][a-z0-9_-]{1,22}[a-z0-9]$/.test(value);
+}
+
 export function likeTerm(query: string) {
   return `%${query.trim().replace(/[%_]/g, "").slice(0, 80)}%`;
 }
@@ -45,6 +53,22 @@ export const DECREE_STATUS: Record<string, string> = {
   published: "Promulgué",
   repealed: "Abrogé",
 };
+
+export const VOICE_NOTE_KIND: Record<string, string> = {
+  reunion: "Rapport de réunion",
+  evenement: "Événement",
+};
+
+export function excerpt(text: string, max = 160) {
+  const plain = text
+    .replace(/!\[[^\]]*]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)]\([^)]*\)/g, "$1")
+    .replace(/[#>*_`~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (plain.length <= max) return plain;
+  return `${plain.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+}
 
 export const CITIZEN_STATUS: Record<string, string> = {
   actif: "Actif",

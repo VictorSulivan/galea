@@ -7,18 +7,18 @@ import { clearSession, createSession, getCurrentUser } from "@/lib/auth";
 import { actionError, type ActionState } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { readText } from "@/lib/format";
+import { normalizeUsername, readText } from "@/lib/format";
 
 export async function login(_state: ActionState, formData: FormData): Promise<ActionState> {
-  const email = readText(formData, "email", 180).toLowerCase();
+  const username = normalizeUsername(readText(formData, "username", 32));
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Indique ton sceau et ton mot de passe." };
+  if (!username || !password) return { error: "Indique ton nom d’utilisateur et ton mot de passe." };
 
   try {
-    const user = await getDb().query.users.findFirst({ where: eq(users.email, email) });
-    if (!user || !user.active) return { error: "Ces archives ne reconnaissent pas ce sceau." };
+    const user = await getDb().query.users.findFirst({ where: eq(users.username, username) });
+    if (!user || !user.active) return { error: "Ce nom d’utilisateur n’ouvre pas la table." };
     const matches = await bcrypt.compare(password, user.passwordHash);
-    if (!matches) return { error: "Ces archives ne reconnaissent pas ce sceau." };
+    if (!matches) return { error: "Ce nom d’utilisateur n’ouvre pas la table." };
     await createSession(user.id);
   } catch (error) {
     return actionError(error);

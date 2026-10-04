@@ -1,7 +1,7 @@
 import { and, eq, ilike, or } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { assets, decrees, letters, parchments, shelves } from "@/lib/db/schema";
+import { assets, decrees, letters, shelves } from "@/lib/db/schema";
 import { canReadShelf, canWriteShelf } from "@/lib/permissions";
 import { readAsset, safeObjectKey, storageConfigured } from "@/lib/storage";
 
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 async function publishedMentions(key: string) {
   const needle = `%${key}%`;
   const db = getDb();
-  const [decreeRows, parchmentRows, letterRows] = await Promise.all([
+  const [decreeRows, letterRows] = await Promise.all([
     db
       .select({ id: decrees.id })
       .from(decrees)
@@ -22,17 +22,12 @@ async function publishedMentions(key: string) {
       )
       .limit(1),
     db
-      .select({ id: parchments.id })
-      .from(parchments)
-      .where(and(eq(parchments.status, "published"), ilike(parchments.body, needle)))
-      .limit(1),
-    db
       .select({ id: letters.id })
       .from(letters)
       .where(and(eq(letters.status, "published"), ilike(letters.body, needle)))
       .limit(1),
   ]);
-  return decreeRows.length + parchmentRows.length + letterRows.length > 0;
+  return decreeRows.length + letterRows.length > 0;
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ key: string[] }> }) {
