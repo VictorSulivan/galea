@@ -6,8 +6,15 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const signedIn = token ? Boolean(await readSession(token)) : false;
   const isAuthPage = pathname === "/connexion";
+  const isWaiting = pathname === "/attente";
+  const isDiscordAuth = pathname.startsWith("/api/auth/discord");
   const isPublic =
-    isAuthPage || pathname === "/parvis" || pathname.startsWith("/parvis/") || pathname.startsWith("/api/media");
+    isAuthPage ||
+    isWaiting ||
+    isDiscordAuth ||
+    pathname === "/parvis" ||
+    pathname.startsWith("/parvis/") ||
+    pathname.startsWith("/api/media");
 
   if (!signedIn && !isPublic) {
     const url = request.nextUrl.clone();

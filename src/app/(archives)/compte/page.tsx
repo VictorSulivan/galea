@@ -37,23 +37,32 @@ export default async function AccountPage() {
               <Button type="submit">Enregistrer</Button>
             </ActionForm>
           </div>
-          <h2 className="mt-8 font-display text-3xl">Mot de passe</h2>
-          <div className="mt-4">
-            <ActionForm action={updatePassword}>
-              <Field label="Actuel">
-                <input name="current" type="password" required className={inputClass} />
-              </Field>
-              <Field label="Nouveau">
-                <input name="next" type="password" required minLength={8} className={inputClass} />
-              </Field>
-              <Field label="Confirmation">
-                <input name="confirm" type="password" required minLength={8} className={inputClass} />
-              </Field>
-              <Button type="submit" variant="ghost">
-                Changer
-              </Button>
-            </ActionForm>
-          </div>
+          {user.discordUsername ? (
+            <p className="mt-4 text-sm text-ink-soft">Connecté via Discord @{user.discordUsername}</p>
+          ) : null}
+          {user.hasPassword ? (
+            <>
+              <h2 className="mt-8 font-display text-3xl">Mot de passe</h2>
+              <div className="mt-4">
+                <ActionForm action={updatePassword}>
+                  <Field label="Actuel">
+                    <input name="current" type="password" required className={inputClass} />
+                  </Field>
+                  <Field label="Nouveau">
+                    <input name="next" type="password" required minLength={8} className={inputClass} />
+                  </Field>
+                  <Field label="Confirmation">
+                    <input name="confirm" type="password" required minLength={8} className={inputClass} />
+                  </Field>
+                  <Button type="submit" variant="ghost">
+                    Changer
+                  </Button>
+                </ActionForm>
+              </div>
+            </>
+          ) : (
+            <p className="mt-8 text-sm text-ink-soft">Pas de mot de passe : tu entres uniquement par Discord.</p>
+          )}
         </Panel>
         <Panel>
           <h2 className="font-display text-3xl">Portes ouvertes</h2>

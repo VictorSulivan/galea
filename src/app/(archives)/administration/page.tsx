@@ -2,19 +2,29 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader, Panel } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { can, canEnterAdmin } from "@/lib/permissions";
+import { eq } from "drizzle-orm";
 
 export const metadata = { title: "Salle du sceau" };
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user || !canEnterAdmin(user)) redirect("/hall");
+  const pendingCount = can(user, "acces.gerer")
+    ? (
+        await getDb().select({ id: users.id }).from(users).where(eq(users.accessStatus, "pending"))
+      ).length
+    : 0;
   const cards = [
     can(user, "acces.gerer")
       ? {
           href: "/administration/acces",
           title: "Accès",
-          text: "Ouvrir un compte, poser un modèle, puis régler chaque porte avec une phrase claire : qui lit, qui écrit, qui tient.",
+          text: pendingCount
+            ? `${pendingCount} demande${pendingCount > 1 ? "s" : ""} Discord en attente de whitelist.`
+            : "Whitelist Discord, comptes et degrés : qui entre, qui lit, qui tient.",
         }
       : null,
     can(user, "rayons.gerer")

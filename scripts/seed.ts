@@ -41,6 +41,7 @@ async function main() {
         passwordHash: await bcrypt.hash(password, 12),
         isSuperAdmin: true,
         active: true,
+        accessStatus: "approved",
       })
       .returning();
     admin = created;

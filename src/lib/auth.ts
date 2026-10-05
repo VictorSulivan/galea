@@ -5,6 +5,8 @@ import { getDb } from "./db";
 import { users } from "./db/schema";
 import { readSession, SESSION_COOKIE, signSession } from "./session-token";
 
+export type AccessStatus = "pending" | "approved" | "denied";
+
 export type SessionUser = {
   id: string;
   username: string;
@@ -12,8 +14,22 @@ export type SessionUser = {
   title: string | null;
   isSuperAdmin: boolean;
   active: boolean;
+  accessStatus: AccessStatus;
+  discordId: string | null;
+  discordUsername: string | null;
+  discordAvatar: string | null;
+  hasPassword: boolean;
   grants: { key: string; level: number }[];
 };
+
+function asAccessStatus(value: string | null | undefined): AccessStatus {
+  if (value === "pending" || value === "denied" || value === "approved") return value;
+  return "approved";
+}
+
+export function isWhitelisted(user: Pick<SessionUser, "accessStatus" | "isSuperAdmin">) {
+  return user.isSuperAdmin || user.accessStatus === "approved";
+}
 
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -26,6 +42,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     with: { grants: true },
   });
   if (!user?.active) return null;
+  if (user.accessStatus === "denied") return null;
 
   return {
     id: user.id,
@@ -34,6 +51,11 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     title: user.title,
     isSuperAdmin: user.isSuperAdmin,
     active: user.active,
+    accessStatus: asAccessStatus(user.accessStatus),
+    discordId: user.discordId,
+    discordUsername: user.discordUsername,
+    discordAvatar: user.discordAvatar,
+    hasPassword: Boolean(user.passwordHash),
     grants: user.grants.map((grant) => ({ key: grant.key, level: grant.level })),
   };
 });

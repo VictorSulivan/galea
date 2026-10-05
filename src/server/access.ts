@@ -43,6 +43,13 @@ export async function saveAccess(_state: ActionState, formData: FormData): Promi
         displayName,
         title: title || null,
         active: target.isSuperAdmin ? true : formData.get("active") === "on",
+        accessStatus: target.isSuperAdmin
+          ? "approved"
+          : formData.get("accessStatus") === "denied"
+            ? "denied"
+            : formData.get("accessStatus") === "pending"
+              ? "pending"
+              : "approved",
         updatedAt: new Date(),
       })
       .where(eq(users.id, id));
@@ -54,6 +61,7 @@ export async function saveAccess(_state: ActionState, formData: FormData): Promi
     return actionError(error);
   }
 
+  revalidatePath("/administration");
   revalidatePath("/administration/acces");
   revalidatePath(`/administration/acces/${id}`);
   return { ok: "Droits enregistrés." };
@@ -82,6 +90,7 @@ export async function createAccount(_state: ActionState, formData: FormData): Pr
         displayName,
         title: title || null,
         passwordHash: await bcrypt.hash(password, 12),
+        accessStatus: "approved",
         active: true,
       })
       .returning({ id: users.id });
@@ -112,4 +121,62 @@ export async function resetAccessPassword(_state: ActionState, formData: FormDat
     return actionError(error);
   }
   return { ok: "Nouveau mot de passe confié." };
+}
+
+export async function approveDiscordAccess(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await guard();
+  if (!actor) return { error: "Tu ne peux pas ouvrir ce sceau." };
+  const id = readText(formData, "id", 80);
+  try {
+    const target = await getDb().query.users.findFirst({ where: eq(users.id, id) });
+    if (!target) return { error: "Compte introuvable." };
+    if (target.isSuperAdmin) return { error: "Le gardien technique n’a pas besoin d’être whitelisté." };
+
+    const shelfRows = await getDb().query.shelves.findMany();
+    const { presetGrants } = await import("@/lib/permissions");
+    const starter = presetGrants(
+      "citoyen",
+      shelfRows.map((shelf) => ({
+        slug: shelf.slug,
+        name: shelf.name,
+        sensitivity: shelf.sensitivity as "ouvert" | "restreint" | "secret",
+      })),
+    );
+
+    await getDb()
+      .update(users)
+      .set({ accessStatus: "approved", active: true, updatedAt: new Date() })
+      .where(eq(users.id, id));
+
+    const existing = await getDb().select().from(grants).where(eq(grants.userId, id));
+    if (existing.length === 0 && starter.length) {
+      await getDb().insert(grants).values(starter.map((grant) => ({ userId: id, key: grant.key, level: grant.level })));
+    }
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath("/administration");
+  revalidatePath("/administration/acces");
+  redirect(`/administration/acces/${id}`);
+}
+
+export async function denyDiscordAccess(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await guard();
+  if (!actor) return { error: "Tu ne peux pas refuser ce sceau." };
+  const id = readText(formData, "id", 80);
+  try {
+    const target = await getDb().query.users.findFirst({ where: eq(users.id, id) });
+    if (!target) return { error: "Compte introuvable." };
+    if (target.isSuperAdmin) return { error: "Le gardien technique ne peut pas être refusé." };
+    await getDb()
+      .update(users)
+      .set({ accessStatus: "denied", active: false, updatedAt: new Date() })
+      .where(eq(users.id, id));
+    await getDb().delete(grants).where(eq(grants.userId, id));
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath("/administration");
+  revalidatePath("/administration/acces");
+  return { ok: "Compte Discord refusé." };
 }

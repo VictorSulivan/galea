@@ -37,6 +37,14 @@ export default async function AccountRightsPage({ params }: { params: Promise<{ 
           Ce gardien technique garde l’accès total, pour qu’on ne puisse pas fermer les archives à clé. Les degrés ci-dessous servent de mémoire, ils ne le verrouillent pas.
         </p>
       ) : null}
+      {account.discordId ? (
+        <p className="mb-4 rounded-2xl border border-white/10 px-4 py-3 text-sm text-sap">
+          Compte Discord @{account.discordUsername ?? "inconnu"}
+          {account.accessStatus === "pending" ? " — encore en attente de whitelist." : null}
+          {account.accessStatus === "denied" ? " — refusé." : null}
+          {account.accessStatus === "approved" ? " — whitelisté." : null}
+        </p>
+      ) : null}
       <Panel sheet>
         <PermissionEditor action={saveAccess} shelves={refs} initial={account.grants.map((grant) => ({ key: grant.key, level: grant.level }))} submitLabel="Enregistrer les degrés">
           <input type="hidden" name="id" value={account.id} />
@@ -49,13 +57,23 @@ export default async function AccountRightsPage({ params }: { params: Promise<{ 
             </Field>
           </div>
           {account.isSuperAdmin ? null : (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="active" defaultChecked={account.active} />
-              Compte actif
-            </label>
+            <>
+              <Field label="Whitelist">
+                <select name="accessStatus" defaultValue={account.accessStatus} className={inputClass}>
+                  <option value="approved">Approuvé — peut entrer</option>
+                  <option value="pending">En attente</option>
+                  <option value="denied">Refusé</option>
+                </select>
+              </Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="active" defaultChecked={account.active} />
+                Compte actif
+              </label>
+            </>
           )}
         </PermissionEditor>
       </Panel>
+      {account.passwordHash || account.isSuperAdmin ? (
       <Panel sheet className="mt-6">
         <h2 className="font-display text-2xl">Nouveau mot de passe</h2>
         <div className="mt-4">
@@ -70,6 +88,7 @@ export default async function AccountRightsPage({ params }: { params: Promise<{ 
           </ActionForm>
         </div>
       </Panel>
+      ) : null}
     </div>
   );
 }

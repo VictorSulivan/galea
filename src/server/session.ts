@@ -14,17 +14,20 @@ export async function login(_state: ActionState, formData: FormData): Promise<Ac
   const password = String(formData.get("password") ?? "");
   if (!username || !password) return { error: "Indique ton nom d’utilisateur et ton mot de passe." };
 
+  let destination = "/hall";
   try {
     const user = await getDb().query.users.findFirst({ where: eq(users.username, username) });
-    if (!user || !user.active) return { error: "Ce nom d’utilisateur n’ouvre pas la table." };
+    if (!user || !user.active || !user.passwordHash) return { error: "Ce nom d’utilisateur n’ouvre pas la table." };
+    if (user.accessStatus === "denied") return { error: "Ce sceau a été refusé." };
     const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) return { error: "Ce nom d’utilisateur n’ouvre pas la table." };
     await createSession(user.id);
+    if (user.accessStatus === "pending" && !user.isSuperAdmin) destination = "/attente";
   } catch (error) {
     return actionError(error);
   }
 
-  redirect("/hall");
+  redirect(destination);
 }
 
 export async function logout() {
@@ -61,7 +64,7 @@ export async function updatePassword(_state: ActionState, formData: FormData): P
 
   try {
     const row = await getDb().query.users.findFirst({ where: eq(users.id, user.id) });
-    if (!row || !(await bcrypt.compare(current, row.passwordHash))) {
+    if (!row?.passwordHash || !(await bcrypt.compare(current, row.passwordHash))) {
       return { error: "Le mot de passe actuel ne correspond pas." };
     }
     await getDb()
