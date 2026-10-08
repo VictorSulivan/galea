@@ -10,6 +10,7 @@ export function FileField({
   shelfId,
   current,
   fallback,
+  compact = false,
   onUploaded,
 }: {
   name?: string;
@@ -18,6 +19,7 @@ export function FileField({
   shelfId?: string;
   current?: string | null;
   fallback?: string;
+  compact?: boolean;
   onUploaded?: (src: string, key: string) => void;
 }) {
   const [key, setKey] = useState(current ?? "");
@@ -50,7 +52,9 @@ export function FileField({
     <div>
       {name ? <input type="hidden" name={name} value={key} /> : null}
       <span className={labelClass}>{label}</span>
-      {src || fallback ? <img src={src || fallback} alt="" className={fallback ? "book-cover book-cover-lg mb-3" : "mb-3 h-28 w-28 rounded-2xl object-cover"} /> : null}
+      {!compact && (src || fallback) ? (
+        <img src={src || fallback} alt="" className={fallback ? "book-cover book-cover-lg mb-3" : "mb-3 h-28 w-28 rounded-2xl object-cover"} />
+      ) : null}
       {fallback && !src ? <p className="mb-2 text-xs text-ink-soft">Couverture par défaut, tant qu’aucune autre n’est déposée.</p> : null}
       <input
         type="file"

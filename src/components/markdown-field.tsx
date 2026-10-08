@@ -24,13 +24,14 @@ export function MarkdownField({
     <div>
       <span className={labelClass}>{label}</span>
       <textarea name={name} value={value} rows={rows} onChange={(event) => setValue(event.target.value)} className={inputClass} />
-      <p className="mt-2 text-xs text-ink-soft">Markdown : **gras**, *italique*, listes, tableaux. Une image se pose à la fin du texte.</p>
+      <p className="mt-2 text-xs text-ink-soft">Markdown : **gras**, *italique*, listes, tableaux. Une image se pose à la fin du texte (moyenne, centrée).</p>
       <div className="mt-3">
         <FileField
           label="Image"
           usage={usage}
           shelfId={shelfId}
-          onUploaded={(src) => setValue((current) => `${current}\n\n![illustration](${src})\n`)}
+          compact
+          onUploaded={(src) => setValue((current) => `${current}\n\n![illustration](${src} "w:52;x:24;y:8")\n`)}
         />
       </div>
     </div>

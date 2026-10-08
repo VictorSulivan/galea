@@ -13,9 +13,55 @@ function safeSrc(src: string) {
   return null;
 }
 
+const IMAGE_LINE_RE = /^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*$/;
+
+function parseFigureMeta(title = "") {
+  let size = "md";
+  let place = "center";
+  let w: number | null = null;
+  let x: number | null = null;
+  let y: number | null = null;
+  for (const part of title.split(/[;\s]+/)) {
+    const [key, value] = part.split(":");
+    if (!key || value === undefined || value === "") continue;
+    if ((key === "s" || key === "size") && /^(sm|md|lg|full)$/.test(value)) size = value;
+    if ((key === "p" || key === "place") && /^(left|center|right|float-left|float-right)$/.test(value)) place = value;
+    if (key === "w" && Number.isFinite(Number(value))) w = Math.min(100, Math.max(10, Number(value)));
+    if (key === "x" && Number.isFinite(Number(value))) x = Math.min(100, Math.max(0, Number(value)));
+    if (key === "y" && Number.isFinite(Number(value))) y = Math.min(100, Math.max(0, Number(value)));
+  }
+  const widthFromSize = size === "sm" ? 32 : size === "lg" ? 72 : size === "full" ? 100 : 52;
+  return { size, place, w: w ?? widthFromSize, x, y, free: x !== null && y !== null };
+}
+
+function figureNode(alt: string, rawSrc: string, title: string, id: string) {
+  const src = safeSrc(rawSrc);
+  if (!src) return alt ? `![${alt}](${rawSrc})` : `![](${rawSrc})`;
+  const meta = parseFigureMeta(title);
+  if (meta.free) {
+    return (
+      <figure
+        key={id}
+        className="book-fig-free"
+        style={{ width: `${meta.w}%`, left: `${meta.x}%`, top: `${meta.y}%` }}
+      >
+        <img src={src} alt={alt} />
+        {alt && alt !== "illustration" ? <figcaption>{alt}</figcaption> : null}
+      </figure>
+    );
+  }
+  return (
+    <figure key={id} className="book-fig" data-size={meta.size} data-place={meta.place} style={{ width: `${meta.w}%` }}>
+      <img src={src} alt={alt} />
+      {alt && alt !== "illustration" ? <figcaption>{alt}</figcaption> : null}
+    </figure>
+  );
+}
+
 function inline(text: string, key: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const pattern = /!\[([^\]]*)\]\(([^)\s]+)\)|\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*/g;
+  const pattern =
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)|\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*/g;
   let last = 0;
   let index = 0;
   for (const match of text.matchAll(pattern)) {
@@ -24,27 +70,35 @@ function inline(text: string, key: string): ReactNode[] {
     const id = `${key}-${index++}`;
     if (match[2]) {
       const src = safeSrc(match[2]);
+      const meta = parseFigureMeta(match[3] ?? "");
       nodes.push(
         src ? (
-          <img key={id} src={src} alt={match[1] ?? ""} className="my-4 max-h-[28rem] rounded-md border border-[#e4d3b0]" />
+          <img
+            key={id}
+            src={src}
+            alt={match[1] ?? ""}
+            className="book-fig-inline"
+            data-size={meta.size}
+            data-place={meta.place}
+          />
         ) : (
           match[0]
         ),
       );
-    } else if (match[3] && match[4]) {
-      const href = safeHref(match[4]);
+    } else if (match[4] && match[5]) {
+      const href = safeHref(match[5]);
       nodes.push(
         href ? (
           <a key={id} href={href} className="text-leaf underline decoration-gold/70 underline-offset-4">
-            {match[3]}
+            {match[4]}
           </a>
         ) : (
           match[0]
         ),
       );
-    } else if (match[5]) nodes.push(<strong key={id}>{match[5]}</strong>);
-    else if (match[6]) nodes.push(<code key={id} className="rounded bg-[#efe2c6] px-1 py-0.5 text-[0.92em]">{match[6]}</code>);
-    else if (match[7]) nodes.push(<em key={id}>{match[7]}</em>);
+    } else if (match[6]) nodes.push(<strong key={id}>{match[6]}</strong>);
+    else if (match[7]) nodes.push(<code key={id} className="rounded bg-[#efe2c6] px-1 py-0.5 text-[0.92em]">{match[7]}</code>);
+    else if (match[8]) nodes.push(<em key={id}>{match[8]}</em>);
     last = start + match[0].length;
   }
   if (last < text.length) nodes.push(text.slice(last));
@@ -60,6 +114,16 @@ function splitRow(line: string) {
     .map((cell) => cell.trim());
 }
 
+/** Un retour à la ligne simple devient un vrai saut ; plusieurs lignes vides restent visibles. */
+function withSoftBreaks(lines: string[], key: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  lines.forEach((line, index) => {
+    if (index > 0) nodes.push(<br key={`${key}-br-${index}`} />);
+    nodes.push(...inline(line, `${key}-ln-${index}`));
+  });
+  return nodes;
+}
+
 export function Markdown({ source }: { source: string }) {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
@@ -70,6 +134,17 @@ export function Markdown({ source }: { source: string }) {
   while (i < lines.length) {
     const line = lines[i] ?? "";
     if (!line.trim()) {
+      let blanks = 0;
+      while (i < lines.length && !(lines[i] ?? "").trim()) {
+        blanks += 1;
+        i += 1;
+      }
+      blocks.push(<div key={key()} className="ink-blank" style={{ height: `${blanks * 1.55}em` }} aria-hidden="true" />);
+      continue;
+    }
+    const loneImage = IMAGE_LINE_RE.exec(line.trim());
+    if (loneImage) {
+      blocks.push(figureNode(loneImage[1] ?? "", loneImage[2] ?? "", loneImage[3] ?? "", key()));
       i += 1;
       continue;
     }
@@ -144,7 +219,7 @@ export function Markdown({ source }: { source: string }) {
       }
       blocks.push(
         <blockquote key={key()} className="my-4 border-l-2 border-gold pl-4 text-ink-soft italic">
-          {inline(buffer.join(" "), key())}
+          {withSoftBreaks(buffer, key())}
         </blockquote>,
       );
       continue;
@@ -181,13 +256,18 @@ export function Markdown({ source }: { source: string }) {
     }
     const buffer = [line];
     i += 1;
-    while (i < lines.length && (lines[i] ?? "").trim() && !/^(#{1,3}\s|```|>\s?|---|\s*[-*]\s|\s*\d+\.\s|\|)/.test(lines[i] ?? "")) {
+    while (
+      i < lines.length &&
+      (lines[i] ?? "").trim() &&
+      !IMAGE_LINE_RE.test((lines[i] ?? "").trim()) &&
+      !/^(#{1,3}\s|```|>\s?|---|\s*[-*]\s|\s*\d+\.\s|\|)/.test(lines[i] ?? "")
+    ) {
       buffer.push(lines[i] ?? "");
       i += 1;
     }
     blocks.push(
-      <p key={key()} className="my-4 leading-8">
-        {inline(buffer.join(" "), key())}
+      <p key={key()} className="ink-para">
+        {withSoftBreaks(buffer, key())}
       </p>,
     );
   }

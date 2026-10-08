@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
-import { Markdown } from "@/components/markdown";
+import { BookPageSurface } from "@/components/book-page-surface";
 import { bookCoverSrc } from "@/lib/book-cover";
 import { BOOK_STATUS, formatDate, formatDay } from "@/lib/format";
 
@@ -153,7 +153,7 @@ export function BookReader({
   }, [face, spread, lastSpread, turn, showFace]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto w-full max-w-[74rem]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link href={`/bibliotheque/${shelfSlug}`} className="text-sm text-gold">
           Retour à {shelfName}
@@ -328,7 +328,7 @@ function LeafView({
 
   if (leaf.kind === "front") {
     return (
-      <div>
+      <div className="book-leaf">
         <p className="reader-kicker">{shelfName}</p>
         <h1 className="reader-title">{title}</h1>
         {subtitle ? <p className="reader-subtitle">{subtitle}</p> : null}
@@ -348,15 +348,10 @@ function LeafView({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <p className="reader-kicker">
-        Page {leaf.number}
-        {total ? ` sur ${total}` : ""}
-      </p>
-                  <h2 className="reader-chapter">{leaf.chapter.title}</h2>
-                  <div className="book-leaf-body">
-                    <Markdown source={leaf.chapter.body || "*Cette page est encore blanche.*"} />
-                  </div>
-    </div>
+    <BookPageSurface
+      kicker={`Page ${leaf.number}${total ? ` sur ${total}` : ""}`}
+      title={leaf.chapter.title}
+      body={leaf.chapter.body}
+    />
   );
 }

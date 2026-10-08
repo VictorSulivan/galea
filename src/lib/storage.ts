@@ -2,6 +2,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 
 const TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
+  "image/jpg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
@@ -67,6 +68,9 @@ export function mediaPath(key: string) {
 }
 
 export function safeObjectKey(key: string) {
-  if (!/^[a-z0-9][a-z0-9/_-]{0,180}$/.test(key) || key.includes("..")) return null;
-  return key;
+  // Autorise les extensions (.jpg, .png…) tout en bloquant ".." et les caractères hors clé S3.
+  if (!/^[a-z0-9][a-z0-9./_-]{0,180}$/i.test(key) || key.includes("..") || key.startsWith("/") || key.endsWith("/")) {
+    return null;
+  }
+  return key.toLowerCase();
 }

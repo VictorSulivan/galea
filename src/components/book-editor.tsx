@@ -13,7 +13,8 @@ import {
 } from "@/lib/book-page";
 import { saveBook } from "@/server/library";
 import { FileField } from "./file-field";
-import { Markdown } from "./markdown";
+import { BookPageSurface } from "./book-page-surface";
+import { PageImagePanel } from "./page-image-panel";
 import { ActionForm } from "./action-form";
 import { POWER_LEVELS } from "@/lib/permissions";
 import { Button, Field, inputClass } from "./ui";
@@ -78,20 +79,6 @@ export function BookEditor({
         };
       }),
     );
-  }
-
-  function appendImage(src: string) {
-    if (!chapter) return;
-    const addition = `\n\n![illustration](${src})\n`;
-    const next = clampPageBody(`${chapter.body}${addition}`);
-    if (next === chapter.body) {
-      setLimitNotice(`Plus de place sur ce feuillet (${PAGE_BODY_MAX} caractères / ${PAGE_BODY_LINES_MAX} lignes).`);
-      return;
-    }
-    if (next !== `${chapter.body}${addition}`) {
-      setLimitNotice(`Feuillet limité à ${PAGE_BODY_MAX} caractères et ${PAGE_BODY_LINES_MAX} lignes.`);
-    }
-    patchActive({ body: next });
   }
 
   return (
@@ -167,14 +154,25 @@ export function BookEditor({
                   Page {active + 1} sur {chapters.length}
                 </p>
                 <div className="flex gap-3 text-sm">
-                  <button type="button" className="text-gold-deep disabled:opacity-40" disabled={active === 0} onClick={() => openPage(active - 1)}>
+                  <button
+                    type="button"
+                    className={`text-gold-deep ${active === 0 ? "pointer-events-none opacity-40" : ""}`}
+                    aria-disabled={active === 0}
+                    onClick={() => {
+                      if (active === 0) return;
+                      openPage(active - 1);
+                    }}
+                  >
                     Précédente
                   </button>
                   <button
                     type="button"
-                    className="text-gold-deep disabled:opacity-40"
-                    disabled={active >= chapters.length - 1}
-                    onClick={() => openPage(active + 1)}
+                    className={`text-gold-deep ${active >= chapters.length - 1 ? "pointer-events-none opacity-40" : ""}`}
+                    aria-disabled={active >= chapters.length - 1}
+                    onClick={() => {
+                      if (active >= chapters.length - 1) return;
+                      openPage(active + 1);
+                    }}
                   >
                     Suivante
                   </button>
@@ -192,10 +190,10 @@ export function BookEditor({
                 </Field>
                 <Field label="Texte de la page">
                   <textarea
-                    key="book-page-body-500"
+                    key="book-page-body-a4"
                     value={chapter.body}
-                    rows={12}
-                    maxLength={500}
+                    rows={22}
+                    maxLength={PAGE_BODY_MAX}
                     onChange={(event) => patchActive({ body: event.target.value })}
                     onKeyDown={(event) => {
                       if (event.key !== "Enter") return;
@@ -204,31 +202,39 @@ export function BookEditor({
                         setLimitNotice(`Maximum ${PAGE_BODY_LINES_MAX} lignes par feuillet.`);
                       }
                     }}
-                    placeholder="500 caractères et 12 lignes maximum."
+                    placeholder={`Feuillet A4 · ${PAGE_BODY_MAX} caractères et ${PAGE_BODY_LINES_MAX} lignes maximum.`}
                     className={`${inputClass} book-page-compose`}
                   />
                 </Field>
               </div>
 
-              <p className={`mt-2 text-xs ${chars >= 500 || lines >= 12 ? "text-clay" : "text-ink-soft"}`}>
-                {chars}/500 caractères · {lines}/12 lignes
+              <p className={`mt-2 text-xs ${chars >= PAGE_BODY_MAX || lines >= PAGE_BODY_LINES_MAX ? "text-clay" : "text-ink-soft"}`}>
+                {chars}/{PAGE_BODY_MAX} caractères · {lines}/{PAGE_BODY_LINES_MAX} lignes
               </p>
               {limitNotice ? <p className="mt-1 text-sm text-clay">{limitNotice}</p> : null}
               {overflow ? <p className="mt-1 text-sm text-clay">{overflow}</p> : null}
 
               <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">Aperçu</p>
-                <div className="book-leaf book-leaf-editor mt-2">
-                  <p className="reader-kicker">
-                    Page {active + 1}
-                    {chapters.length ? ` sur ${chapters.length}` : ""}
-                  </p>
-                  <h2 className="reader-chapter">{chapter.title || "Page"}</h2>
-                  <div className="book-leaf-body">
-                    <Markdown source={chapter.body || "*Cette page est encore blanche.*"} />
-                  </div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep">Feuillet</p>
+                <div className="mt-2">
+                  <BookPageSurface
+                    kicker={`Page ${active + 1}${chapters.length ? ` sur ${chapters.length}` : ""}`}
+                    title={chapter.title || "Page"}
+                    body={chapter.body}
+                    editable
+                    shelfId={shelfId}
+                    onChange={(body) => patchActive({ body })}
+                    onNotice={setLimitNotice}
+                  />
                 </div>
               </div>
+
+              <PageImagePanel
+                shelfId={shelfId}
+                body={chapter.body}
+                onChange={(body) => patchActive({ body })}
+                onNotice={setLimitNotice}
+              />
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {chapters.length > 1 ? (
@@ -244,7 +250,6 @@ export function BookEditor({
                   </Button>
                 ) : null}
               </div>
-              <FileField label="Image dans la page" usage="livre" shelfId={shelfId} onUploaded={appendImage} />
               <Button type="submit" className="mt-4" disabled={Boolean(overflow)}>
                 Enregistrer le livre
               </Button>
